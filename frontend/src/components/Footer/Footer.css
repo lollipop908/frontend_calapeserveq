@@ -1,0 +1,123 @@
+.home-footer {
+  background: linear-gradient(135deg, #2d5aa0 0%, #1e3a5f 100%);
+  padding: 0.1rem 1rem;  
+  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  min-height: auto;       
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0;
+}
+
+.footer-link:hover {
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.3);
+}
+
+.footer-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  text-align: center;
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: 0.2px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.footer-version {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.65rem;
+  font-weight: 300;
+  text-align: right;
+  font-family: 'Monaco', 'Menlo', monospace;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
+  .home-footer {
+    padding: 0.6rem 1rem;
+    min-height: auto;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    gap: 0.6rem;
+    text-align: center;
+  }
+  
+  .footer-links {
+    justify-content: center;
+    gap: 1rem;
+    flex: none;
+    order: 2;
+  }
+  
+  .footer-text {
+    flex: none;
+    order: 1;
+    position: static;
+    transform: none;
+  }
+  
+  .footer-version {
+    flex: none;
+    order: 3;
+    text-align: center;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-footer {
+    padding: 0.5rem 0.8rem;
+  }
+  
+  .footer-links {
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  
+  .footer-link, .footer-text {
+    font-size: 0.7rem;
+  }
+  
+  .footer-version {
+    font-size: 0.6rem;
+  }
+}
