@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./styles/ManageProfile.css";
 import { useMutation, useQuery } from "@apollo/client";
-// import { UPDATE_ADMIN_PROFILE } from "../../graphql/mutation";
-// import { GET_ADMIN_PROFILE } from "../../graphql/query";
+import { UPDATE_ADMIN_PROFILE } from "../../graphql/mutation";
+import { GET_ADMIN_PROFILE } from "../../graphql/query";
 import {
   FaUser,
   FaLock,
@@ -12,6 +12,7 @@ import {
   FaUserCircle,
 } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
+import Swal from "sweetalert2";
 
 const ManageProfile = () => {
   const [profileData, setProfileData] = useState({
@@ -27,7 +28,15 @@ const ManageProfile = () => {
   const [editingPassword, setEditingPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const { data: adminData, refetch } = useQuery(GET_ADMIN_PROFILE);
+  // Get staffId from sessionStorage (set during login)
+  const staffId = parseInt(sessionStorage.getItem("staffId")) || 1;
+
+  const { data: adminData, loading, error, refetch } = useQuery(GET_ADMIN_PROFILE, {
+    variables: { staffId },
+    fetchPolicy: "network-only", // Always fetch fresh data
+  });
+
+  console.log("Admin Data:", adminData);
 
   const [updateProfile] = useMutation(UPDATE_ADMIN_PROFILE, {
     onCompleted: () => {
@@ -35,13 +44,16 @@ const ManageProfile = () => {
       setSuccessMessage("Profile updated successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     },
+    onError: (error) => {
+      console.error("Update error:", error);
+    },
   });
 
   useEffect(() => {
-    if (adminData && adminData.admin) {
+    if (adminData && adminData.staff) {
       setProfileData({
         ...profileData,
-        username: adminData.admin.username || "",
+        username: adminData.staff.staffUsername || "",
       });
     }
   }, [adminData]);
@@ -54,7 +66,6 @@ const ManageProfile = () => {
         icon: "error",
         title: "Oops...",
         text: "Username cannot be empty!",
-        footer: '<a href="#">Why do I have this issue?</a>',
       });
       return;
     }
@@ -62,18 +73,24 @@ const ManageProfile = () => {
     try {
       await updateProfile({
         variables: {
-          updateAdminInput: {
-            username: profileData.username,
+          updateStaffInput: {
+            staffId: staffId,
+            staffUsername: profileData.username,
           },
         },
       });
       setEditingUsername(false);
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: "Username updated successfully!",
+        timer: 2000,
+      });
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Oops...",
         text: "Failed to update username!",
-        footer: '<a href="#">Why do I have this issue?</a>',
       });
     }
   };
@@ -85,23 +102,27 @@ const ManageProfile = () => {
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Your new and old password doesn't match!",
-        footer: '<a href="#">Why do I have this issue?</a>',
+        text: "New password and confirm password don't match!",
       });
       return;
     }
 
     if (profileData.newPassword.length < 6) {
-      alert("Password must be at least 6 characters long");
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Password must be at least 6 characters long!",
+      });
       return;
     }
 
     try {
       await updateProfile({
         variables: {
-          updateAdminInput: {
+          updateStaffInput: {
+            staffId: staffId,
             currentPassword: profileData.currentPassword,
-            newPassword: profileData.newPassword,
+            staffPassword: profileData.newPassword,
           },
         },
       });
@@ -115,12 +136,17 @@ const ManageProfile = () => {
       setShowCurrentPassword(false);
       setShowNewPassword(false);
       setShowConfirmPassword(false);
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: "Password updated successfully!",
+        timer: 2000,
+      });
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Something went wrong!",
-        footer: '<a href="#">Why do I have this issue?</a>',
+        text: "Failed to update password! Make sure your current password is correct.",
       });
     }
   };
@@ -129,7 +155,7 @@ const ManageProfile = () => {
     setEditingUsername(false);
     setProfileData({
       ...profileData,
-      username: adminData?.admin?.username || "",
+      username: adminData?.staff?.staffUsername || "",
     });
   };
 
@@ -145,6 +171,22 @@ const ManageProfile = () => {
     setShowNewPassword(false);
     setShowConfirmPassword(false);
   };
+
+  if (loading) {
+    return (
+      <div className="profile-content">
+        <div className="loading-spinner">Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="profile-content">
+        <div className="error-message">Error loading profile: {error.message}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-content">
@@ -169,8 +211,12 @@ const ManageProfile = () => {
               <FaUserCircle />
             </div>
             <div className="avatar-info">
-              <h3>{adminData?.admin?.username || "Admin"}</h3>
+              <h3>
+                {adminData?.staff?.staffFirstname || ""}{" "}
+                {adminData?.staff?.staffLastname || ""}
+              </h3>
               <p className="role-badge">Administrator</p>
+              <p className="username-display">@{adminData?.staff?.staffUsername || "username"}</p>
             </div>
           </div>
         </div>
@@ -225,7 +271,7 @@ const ManageProfile = () => {
               <div className="info-item">
                 <span className="info-label">Current Username:</span>
                 <span className="info-value">
-                  {adminData?.admin?.username || "Not set"}
+                  {adminData?.staff?.staffUsername || "Not set"}
                 </span>
               </div>
             </div>

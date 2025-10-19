@@ -75,6 +75,20 @@ export const UPDATE_STAFF = gql`
   mutation UpdateStaff($updateStaffInput: UpdateStaffInput!) {
     updateStaff(updateStaffInput: $updateStaffInput) {
       staffId
+      staffUsername
+      staffPassword
+      staffFirstname
+      staffLastname
+    }
+  }
+`;
+
+export const UPDATE_ADMIN_PROFILE = gql`
+  mutation UpdateStaff($updateStaffInput: UpdateStaffInput!) {
+    updateStaff(updateStaffInput: $updateStaffInput) {
+      staffId
+      staffUsername
+      staffPassword
       staffFirstname
       staffLastname
     }
@@ -111,16 +125,20 @@ export const DELETE_SERVICE = gql`
 export const CREATE_QUEUE = gql`
   mutation CreateQueue($createQueueInput: CreateQueueInput!) {
     createQueue(createQueueInput: $createQueueInput) {
-      Department {
+      department {
         departmentName
       }
+      service {
+        serviceName
+      }
       status
-      type
       priority
       number
     }
   }
 `;
+
+
 export const CREATE_ROLE = gql`
   mutation CreateRole($createRoleInput: CreateRoleInput!) {
     createRole(createRoleInput: $createRoleInput) {

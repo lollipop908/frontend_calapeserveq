@@ -44,6 +44,19 @@ export const GET_STAFF = gql`
     }
   }
 `;
+
+export const GET_ADMIN_PROFILE = gql`
+  query Staff($staffId: Int!) {
+    staff(staffId: $staffId) {
+      staffId
+      staffFirstname
+      staffLastname
+      staffUsername
+      staffPassword
+      }
+    }
+`;
+
 export const GET_SERVICES = gql`
   query Services {
     services {

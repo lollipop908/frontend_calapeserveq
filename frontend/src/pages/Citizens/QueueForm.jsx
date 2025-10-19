@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@apollo/client";
 import {
   ArrowLeft,
   Building2,
@@ -14,48 +15,69 @@ import QueueModal from "./QueueModal";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import { useNavigate } from "react-router-dom";
+import { GET_DEPARTMENTS, GET_SERVICES } from "../../graphql/query";
+import { CREATE_QUEUE } from "../../graphql/mutation";
 
 const QueueForm = ({ onBack }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    department: "",
-    citizenType: "",
+    departmentId: "",
+    serviceId: "",
     priority: "",
   });
 
-  const departments = [
-    { id: 1, departmentName: "Business Permits and Licensing", prefix: "BPL" },
-    { id: 2, departmentName: "Civil Registry Office", prefix: "CRO" },
-    { id: 3, departmentName: "Municipal Assessor's Office", prefix: "MAO" },
-    { id: 4, departmentName: "Municipal Treasurer's Office", prefix: "MTO" },
-    { id: 5, departmentName: "Municipal Planning Office", prefix: "MPO" },
-    { id: 6, departmentName: "Social Services", prefix: "SSO" },
-    { id: 7, departmentName: "Municipal Mayor's Office", prefix: "MMO" },
-    { id: 8, departmentName: "Municipal Engineering Office", prefix: "MEO" },
-  ];
+  // GraphQL Queries
+  const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS);
+  const { data: servicesData, loading: servicesLoading, error: servicesError } = useQuery(GET_SERVICES);
+
+  // GraphQL Mutation
+  const [createQueue, { loading: creatingQueue }] = useMutation(CREATE_QUEUE);
 
   const [queueNumber, setQueueNumber] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [filteredServices, setFilteredServices] = useState([]);
+
+  // Filter services based on selected department
+  useEffect(() => {
+    if (servicesData?.services && formData.departmentId) {
+      const filtered = servicesData.services.filter(
+        service => String(service.department.departmentId) === String(formData.departmentId)
+      );
+      console.log('Selected Department ID:', formData.departmentId);
+      console.log('All Services:', servicesData.services);
+      console.log('Filtered Services:', filtered);
+      setFilteredServices(filtered);
+    } else {
+      setFilteredServices([]);
+    }
+  }, [formData.departmentId, servicesData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Convert to integer for departmentId and serviceId
+    const processedValue = (name === 'departmentId' || name === 'serviceId') 
+      ? parseInt(value, 10) 
+      : value;
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
+      // Reset service when department changes
+      ...(name === 'departmentId' && { serviceId: '' })
     }));
     if (error) setError("");
   };
 
   const handleNext = () => {
-    if (currentStep === 1 && !formData.department) {
+    if (currentStep === 1 && !formData.departmentId) {
       setError("Please select a department");
       return;
     }
-    if (currentStep === 2 && !formData.citizenType) {
-      setError("Please select a service type");
+    if (currentStep === 2 && !formData.serviceId) {
+      setError("Please select a service");
       return;
     }
     if (currentStep === 3 && !formData.priority) {
@@ -77,24 +99,47 @@ const QueueForm = ({ onBack }) => {
     setError("");
 
     try {
-      const selectedDepartment = departments.find(
-        (dept) => dept.departmentName === formData.department
+      console.log('Form Data:', formData);
+      console.log('Filtered Services:', filteredServices);
+      console.log('All Departments:', departmentsData?.departments);
+
+      const selectedService = filteredServices.find(
+        service => String(service.serviceId) === String(formData.serviceId)
       );
 
-      if (!selectedDepartment) {
-        throw new Error("Selected department not found");
+      const selectedDepartment = departmentsData?.departments?.find(
+        dept => String(dept.departmentId) === String(formData.departmentId)
+      );
+
+      console.log('Selected Service:', selectedService);
+      console.log('Selected Department:', selectedDepartment);
+
+      if (!selectedService || !selectedDepartment) {
+        throw new Error("Selected service or department not found");
       }
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Match the CreateQueueInput structure from your backend
+      const createQueueInput = {
+        departmentId: parseInt(formData.departmentId, 10),
+        serviceId: parseInt(formData.serviceId, 10),
+        priority: formData.priority,
+        status: "waiting"
+      };
 
-      const queueNum = Math.floor(Math.random() * 999) + 1;
-      const displayQueueNumber = `${selectedDepartment.prefix}-${queueNum
-        .toString()
-        .padStart(3, "0")}`;
+      console.log('Create Queue Input:', createQueueInput);
 
-      setQueueNumber(displayQueueNumber);
-      setShowModal(true);
+      const { data } = await createQueue({
+        variables: { createQueueInput }
+      });
+
+      console.log('Mutation Response:', data);
+
+      if (data?.createQueue) {
+        setQueueNumber(data.createQueue.number);
+        setShowModal(true);
+      }
     } catch (error) {
+      console.error("Error creating queue:", error);
       setError(error.message || "Failed to create queue. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -103,8 +148,8 @@ const QueueForm = ({ onBack }) => {
 
   const resetForm = () => {
     setFormData({
-      department: "",
-      citizenType: "",
+      departmentId: "",
+      serviceId: "",
       priority: "",
     });
     setCurrentStep(1);
@@ -130,6 +175,32 @@ const QueueForm = ({ onBack }) => {
       default: return "";
     }
   };
+
+  const getSelectedDepartmentName = () => {
+    const dept = departmentsData?.departments?.find(
+      d => d.departmentId === formData.departmentId
+    );
+    return dept?.departmentName || "";
+  };
+
+  const getSelectedServiceName = () => {
+    const service = filteredServices.find(
+      s => s.serviceId === formData.serviceId
+    );
+    return service?.serviceName || "";
+  };
+
+  if (departmentsError || servicesError) {
+    return (
+      <div className="home-container">
+        <Header />
+        <div className="error-message">
+          <p>Error loading data. Please refresh the page.</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="home-container">
@@ -191,21 +262,22 @@ const QueueForm = ({ onBack }) => {
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="department">Department</label>
+                      <label htmlFor="departmentId">Department</label>
                       <div className="select-wrapper">
                         <select
-                          id="department"
-                          name="department"
-                          value={formData.department}
+                          id="departmentId"
+                          name="departmentId"
+                          value={formData.departmentId}
                           onChange={handleChange}
                           required
                           className="form-select"
+                          disabled={departmentsLoading}
                         >
                           <option value="" disabled>
-                            -- Select Department --
+                            {departmentsLoading ? "Loading departments..." : "-- Select Department --"}
                           </option>
-                          {departments.map((dept) => (
-                            <option key={dept.id} value={dept.departmentName}>
+                          {departmentsData?.departments?.map((dept) => (
+                            <option key={dept.departmentId} value={dept.departmentId}>
                               {dept.departmentName}
                             </option>
                           ))}
@@ -229,23 +301,29 @@ const QueueForm = ({ onBack }) => {
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="citizenType">Service Type</label>
+                      <label htmlFor="serviceId">Service Type</label>
                       <div className="select-wrapper">
                         <select
-                          id="citizenType"
-                          name="citizenType"
-                          value={formData.citizenType}
+                          id="serviceId"
+                          name="serviceId"
+                          value={formData.serviceId}
                           onChange={handleChange}
                           required
                           className="form-select"
+                          disabled={servicesLoading || !formData.departmentId}
                         >
                           <option value="" disabled>
-                            -- Select Service Type --
+                            {!formData.departmentId 
+                              ? "Please select a department first"
+                              : servicesLoading 
+                              ? "Loading services..." 
+                              : "-- Select Service Type --"}
                           </option>
-                          <option value="New Application">New Application</option>
-                          <option value="Renewal">Renewal</option>
-                          <option value="Follow-up">Follow-up</option>
-                          <option value="Inquiry">Inquiry</option>
+                          {filteredServices.map((service) => (
+                            <option key={service.serviceId} value={service.serviceId}>
+                              {service.serviceName}
+                            </option>
+                          ))}
                         </select>
                         <ChevronDown className="select-arrow" size={14} />
                       </div>
@@ -300,11 +378,11 @@ const QueueForm = ({ onBack }) => {
                     <div className="review-info">
                       <div className="review-item">
                         <strong>Department:</strong>
-                        <span>{formData.department}</span>
+                        <span>{getSelectedDepartmentName()}</span>
                       </div>
                       <div className="review-item">
                         <strong>Service Type:</strong>
-                        <span>{formData.citizenType}</span>
+                        <span>{getSelectedServiceName()}</span>
                       </div>
                       <div className="review-item">
                         <strong>Priority Level:</strong>
@@ -371,7 +449,7 @@ const QueueForm = ({ onBack }) => {
         {showModal && (
           <QueueModal
             queueNumber={queueNumber}
-            department={formData.department}
+            department={getSelectedDepartmentName()}
             onClose={() => {
               setShowModal(false);
               resetForm();
