@@ -1,0 +1,204 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.queue-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+}
+
+.queue-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.department-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.department-input {
+  background: transparent;
+  border: none;
+  color: #111827;
+  font-size: 1.75rem;
+  font-weight: 500;
+  outline: none;
+  padding: 0.25rem 0;
+  transition: color 0.2s ease;
+}
+
+.department-input:focus {
+  color: #3b82f6;
+}
+
+.department-input::placeholder {
+  color: #9ca3af;
+}
+
+.time-display {
+  color: #6b7280;
+  font-size: 1.5rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.main-section {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 2rem;
+}
+
+.now-serving-panel,
+.previous-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.label {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.current-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #3b82f6;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.ticket-type {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ticket-number {
+  color: #ffffff;
+  font-size: 5rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.previous-tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.previous-ticket {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.previous-ticket:hover {
+  background: #f3f4f6;
+}
+
+.prev-number {
+  color: #111827;
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.prev-type {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ticket-placeholder,
+.no-previous {
+  color: #9ca3af;
+  font-size: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .main-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .department-input {
+    font-size: 1.5rem;
+  }
+  
+  .time-display {
+    font-size: 1.25rem;
+  }
+  
+  .ticket-number {
+    font-size: 4rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .queue-content {
+    padding: 2rem 1rem;
+  }
+
+  .department-section {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .department-input {
+    font-size: 1.25rem;
+  }
+  
+  .time-display {
+    font-size: 1rem;
+  }
+  
+  .ticket-number {
+    font-size: 3rem;
+  }
+  
+  .prev-number {
+    font-size: 1.5rem;
+  }
+
+  .now-serving-panel,
+  .previous-panel {
+    padding: 1.5rem;
+  }
+
+  .current-ticket {
+    padding: 2rem 1.5rem;
+  }
+}

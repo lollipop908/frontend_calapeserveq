@@ -1,137 +1,108 @@
-.home-header {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  padding: 0.5rem 2rem;
+/* --------------------
+   HEADER STYLES
+   -------------------- */
+.app-header {
+  /* Ultra Reduced height for a very thin header */
+  background: linear-gradient(135deg, #1f4068 0%, #162a40 100%);
+  padding: 0.3rem 2rem; /* Minimal vertical padding */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 12px rgba(74, 144, 226, 0.15);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Reduced shadow depth */
+  backdrop-filter: blur(8px); 
   position: relative;
-  z-index: 10;
+  z-index: 100;
   flex-shrink: 0;
-  min-height: 60px;
-  height: 60px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 44px; /* Target Thin Header Height (Desktop) */
+  height: 44px; /* Target Thin Header Height (Desktop) */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
 }
 
+/* --------------------
+   LOGO STYLES
+   -------------------- */
 .logo-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  height: 60px;
-  padding: 0.5rem 0;
-}
-
-.logo-container:hover {
-  transform: translateX(4px);
-}
-
-.logo-container:active {
-  transform: translateX(2px);
+  transition: all 0.3s ease; 
+  height: 100%;
 }
 
 .logo-image {
   height: 100%;
-  max-height: 42px;
+  max-height: 30px; /* Smallest logo size yet (was 36px) */
   width: auto;
-  margin-right: 0.75rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  margin-right: 0.5rem; 
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3)); /* Lighter shadow */
   transition: transform 0.3s ease;
 }
 
-.logo-container:hover .logo-image {
-  transform: rotate(-5deg) scale(1.05);
-}
 
 .logo-text {
-  color: #ffffff;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #f0f8ff; 
+  font-size: 1.1rem; /* Smaller text size (was 1.2rem) */
+  font-weight: 700; /* Slightly less bold to match size */
+  letter-spacing: 0.2px; 
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); 
   white-space: nowrap;
   line-height: 1;
 }
 
+/* --------------------
+   DECORATION STYLES
+   -------------------- */
 .header-decoration {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem; /* Reduced gap */
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.5rem 0.75rem;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.15); 
+  padding: 0.2rem 0.5rem; /* Minimal padding */
+  border-radius: 15px; /* Smaller border radius */
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .decoration-circle {
-  width: 6px;
-  height: 6px;
+  width: 5px; /* Smaller circles */
+  height: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.8);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  background: #a9c5ec; 
+  animation: subtlePulse 3s ease-in-out infinite; 
+  box-shadow: 0 0 5px rgba(169, 197, 236, 0.8);
 }
 
 .decoration-circle:nth-child(2) {
-  animation-delay: 0.4s;
+  animation-delay: 0.6s;
 }
 
 .decoration-circle:nth-child(3) {
-  animation-delay: 0.8s;
+  animation-delay: 1.2s;
 }
 
-@keyframes pulse {
+@keyframes subtlePulse {
   0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
+    opacity: 0.7;
+    transform: scale(0.9);
   }
   50% {
     opacity: 1;
-    transform: scale(1.3);
+    transform: scale(1.1);
   }
 }
 
-/* Mobile Responsive */
+/* --------------------
+   MOBILE RESPONSIVE
+   -------------------- */
 @media (max-width: 768px) {
-  .home-header {
-    padding: 0.5rem 1.25rem;
-    min-height: 52px;
-    height: 52px;
+  .app-header {
+    padding: 0.3rem 1.25rem;
+    min-height: 40px;
+    height: 40px;
   }
   
   .logo-image {
-    max-height: 36px;
-    margin-right: 0.625rem;
-  }
-  
-  .logo-text {
-    font-size: 1.125rem;
-  }
-  
-  .header-decoration {
-    padding: 0.375rem 0.625rem;
-    gap: 0.375rem;
-  }
-  
-  .decoration-circle {
-    width: 5px;
-    height: 5px;
-  }
-}
-
-@media (max-width: 480px) {
-  .home-header {
-    padding: 0.375rem 1rem;
-    min-height: 48px;
-    height: 48px;
-  }
-  
-  .logo-image {
-    max-height: 32px;
-    margin-right: 0.5rem;
+    max-height: 26px; /* Adjusted down for mobile */
+    margin-right: 0.4rem;
   }
   
   .logo-text {
@@ -139,12 +110,34 @@
   }
   
   .header-decoration {
-    padding: 0.25rem 0.5rem;
-    gap: 0.25rem;
+    padding: 0.2rem 0.4rem;
+    gap: 0.2rem;
   }
   
   .decoration-circle {
     width: 4px;
     height: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0.2rem 0.75rem;
+    min-height: 36px; /* Very thin on small screens */
+    height: 36px;
+  }
+  
+  .logo-image {
+    max-height: 24px;
+    margin-right: 0.3rem;
+  }
+  
+  .logo-text {
+    font-size: 0.9rem;
+    letter-spacing: 0.1px;
+  }
+  
+  .header-decoration {
+    display: none; 
   }
 }

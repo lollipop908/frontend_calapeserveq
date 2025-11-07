@@ -7,11 +7,12 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  TrendingUp,
   Star,
   Settings,
   User,
   ChevronDown,
+  Plus,
+  X,
 } from "lucide-react";
 import "./styles/StaffDashboard.css";
 import { useQuery, useMutation } from "@apollo/client";
@@ -20,6 +21,7 @@ import { UPDATE_QUEUE_STATUS } from "../../graphql/mutation";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
+import QueueForm from "../Citizens/QueueForm";
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
@@ -45,6 +47,7 @@ const StaffDashboard = () => {
   const [volume, setVolume] = useState(0.8);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showQueueForm, setShowQueueForm] = useState(false);
   const speechSynthRef = useRef(null);
   const notificationSoundRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -467,8 +470,13 @@ const StaffDashboard = () => {
 
   const handleSettings = () => {
     setShowUserMenu(false);
-    // Navigate to settings or open settings modal
     showNotification("Settings feature coming soon", "info");
+  };
+
+  const handleQueueFormSuccess = () => {
+    setShowQueueForm(false);
+    refetchQueues();
+    showNotification("Queue created successfully!", "success");
   };
 
   if (isLoading || queueLoading) {
@@ -515,6 +523,14 @@ const StaffDashboard = () => {
               </div>
             </div>
             
+            <button 
+              className="create-queue-btn"
+              onClick={() => setShowQueueForm(true)}
+            >
+              <Plus size={18} />
+              Create Queue
+            </button>
+
             <div className="user-profile" ref={userMenuRef}>
               <button 
                 className="user-profile-btn"
@@ -524,8 +540,8 @@ const StaffDashboard = () => {
                   <User size={18} />
                 </div>
                 <div className="user-info">
-                  <span className="user-name">{staffInfo?.name || "Staff User"}</span>
-                  <span className="user-role">{staffInfo?.username || "staff"}</span>
+                  <span className="user-name">{staffInfo?.username || "Staff User"}</span>
+                  <span className="user-role">staff</span>
                 </div>
                 <ChevronDown size={16} className={`chevron ${showUserMenu ? 'rotate' : ''}`} />
               </button>
@@ -686,6 +702,20 @@ const StaffDashboard = () => {
           </div>
         </div>
       </div>
+
+      {showQueueForm && (
+        <div className="queue-form-modal-overlay" onClick={() => setShowQueueForm(false)}>
+          <div className="queue-form-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="modal-close-btn"
+              onClick={() => setShowQueueForm(false)}
+            >
+              <X size={20} />
+            </button>
+            <QueueForm onSuccess={handleQueueFormSuccess} />
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

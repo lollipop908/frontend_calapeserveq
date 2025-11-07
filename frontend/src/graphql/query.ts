@@ -89,19 +89,15 @@ export const GET_QUEUES_BY_DEPARTMENT = gql`
   }
 `;
 
-// export const GET_QUEUES_BY_DEPARTMENT = gql`
+// export const GET_ALL_QUEUES_DEPARTMENT = gql`
 // query QueueByDepartment($departmentId: Int!) {
 //   QueueByDepartment(departmentId: $departmentId) {
 //     department {
 //       departmentId
 //       departmentName
-//     }
-//     service {
-//       serviceName
+//       prefix
 //     }
 //     number
-//     priority
-//     status
 //   }
 // }
 // `;

@@ -28,12 +28,12 @@ const ManageProfile = () => {
   const [editingPassword, setEditingPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Get staffId from sessionStorage (set during login)
+ 
   const staffId = parseInt(sessionStorage.getItem("staffId")) || 1;
 
   const { data: adminData, loading, error, refetch } = useQuery(GET_ADMIN_PROFILE, {
     variables: { staffId },
-    fetchPolicy: "network-only", // Always fetch fresh data
+    fetchPolicy: "network-only", 
   });
 
   console.log("Admin Data:", adminData);
@@ -111,7 +111,7 @@ const ManageProfile = () => {
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Password must be at least 6 characters long!",
+        text: "Password must be at least 8 characters long!",
       });
       return;
     }
@@ -346,7 +346,7 @@ const ManageProfile = () => {
                   </button>
                 </div>
                 <small className="form-help">
-                  Password must be at least 6 characters long
+                  Password must be at least 8 characters long
                 </small>
               </div>
 

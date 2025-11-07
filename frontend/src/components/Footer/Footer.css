@@ -1,11 +1,17 @@
-.home-footer {
-  background: linear-gradient(135deg, #2d5aa0 0%, #1e3a5f 100%);
-  padding: 0.1rem 1rem;  
-  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.08);
+/* --------------------
+   FOOTER STYLES
+   -------------------- */
+.app-footer {
+  /* Absolute Minimum Height for a thin footer */
+  background: linear-gradient(135deg, #162a40 0%, #1f4068 100%);
+  padding: 0.15rem 2rem; /* Extremely minimal vertical padding */
+  box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.2); /* Minimal shadow */
   position: relative;
-  z-index: 10;
+  z-index: 100;
   flex-shrink: 0;
-  min-height: auto;       
+  min-height: 32px; /* Target Absolute Minimal Height (Desktop) */
+  height: 32px; /* Target Absolute Minimal Height (Desktop) */
+  border-top: 1px solid rgba(255, 255, 255, 0.05); 
 }
 
 .footer-content {
@@ -15,109 +21,73 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  position: relative;
-}
-
-.footer-links {
-  display: flex;
-  gap: 1.2rem;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.footer-link {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0;
-}
-
-.footer-link:hover {
-  color: #ffffff;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.3);
+  height: 100%;
 }
 
 .footer-text {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.75rem;
-  text-align: center;
+  color: rgba(255, 255, 255, 0.7); 
+  font-size: 0.65rem; /* Smallest readable font size */
+  text-align: left; 
   font-weight: 400;
   margin: 0;
-  letter-spacing: 0.2px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
 .footer-version {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.65rem;
+  font-size: 0.5rem; /* Very small text for version number */
   font-weight: 300;
   text-align: right;
   font-family: 'Monaco', 'Menlo', monospace;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08); 
+  padding: 0 0.3rem; /* Minimal padding */
+  border-radius: 3px; 
+  border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(5px);
   display: inline-block;
+  line-height: 1.5; /* Ensure text fits vertically */
 }
 
+/* --------------------
+   MOBILE RESPONSIVE
+   -------------------- */
 @media (max-width: 768px) {
-  .home-footer {
-    padding: 0.6rem 1rem;
-    min-height: auto;
+  .app-footer {
+    padding: 0.1rem 1.25rem;
+    min-height: 28px;
+    height: 28px;
   }
   
   .footer-content {
     flex-direction: column;
-    gap: 0.6rem;
-    text-align: center;
-  }
-  
-  .footer-links {
     justify-content: center;
-    gap: 1rem;
-    flex: none;
-    order: 2;
+    gap: 0; /* Removing gap completely */
+    text-align: center;
   }
   
   .footer-text {
-    flex: none;
-    order: 1;
-    position: static;
-    transform: none;
+    font-size: 0.55rem;
   }
   
   .footer-version {
-    flex: none;
-    order: 3;
-    text-align: center;
-    margin-left: 0;
+    font-size: 0.45rem;
   }
 }
 
 @media (max-width: 480px) {
-  .home-footer {
-    padding: 0.5rem 0.8rem;
+  .app-footer {
+    padding: 0 0.75rem;
+    min-height: 24px; /* The absolute minimum on small screens */
+    height: 24px;
   }
   
-  .footer-links {
-    gap: 0.8rem;
-    flex-wrap: wrap;
-  }
-  
-  .footer-link, .footer-text {
-    font-size: 0.7rem;
+  .footer-text {
+    font-size: 0.5rem;
   }
   
   .footer-version {
-    font-size: 0.6rem;
+    font-size: 0.4rem;
+    padding: 0 0.25rem;
   }
 }

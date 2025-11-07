@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { useMemo } from "react";
 import {
-  ArrowLeft,
   Building2,
   Users,
   ChevronDown,
@@ -10,16 +9,15 @@ import {
   Loader2,
   RotateCcw,
   Check,
+  ArrowLeft,
 } from "lucide-react";
 import "./styles/QueueForm.css";
 import QueueModal from "./QueueModal";
-import Header from "../../components/Header/Header";
-import Footer from "../../components/Footer/Footer";
 import { useNavigate } from "react-router-dom";
 import { GET_DEPARTMENTS, GET_SERVICES } from "../../graphql/query";
 import { CREATE_QUEUE } from "../../graphql/mutation";
 
-const QueueForm = ({ onBack }) => {
+const QueueForm = ({ onSuccess }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -28,13 +26,13 @@ const QueueForm = ({ onBack }) => {
     priority: "",
   });
 
- const {
-  data: departmentsData,
-  loading: departmentsLoading,
-  error: departmentsError,
-} = useQuery(GET_DEPARTMENTS, {
-  fetchPolicy: "network-only",
-});
+  const {
+    data: departmentsData,
+    loading: departmentsLoading,
+    error: departmentsError,
+  } = useQuery(GET_DEPARTMENTS, {
+    fetchPolicy: "network-only",
+  });
 
   const {
     data: servicesData,
@@ -44,7 +42,8 @@ const QueueForm = ({ onBack }) => {
     fetchPolicy: "network-only",
     onError: (e) => {
       console.error("Services query error:", e);
-      if (e?.graphQLErrors?.length) console.error("GQL errors:", e.graphQLErrors);
+      if (e?.graphQLErrors?.length)
+        console.error("GQL errors:", e.graphQLErrors);
       if (e?.networkError) console.error("Network error:", e.networkError);
     },
   });
@@ -147,7 +146,9 @@ const QueueForm = ({ onBack }) => {
       }
 
       const normalizedPriority =
-        String(formData.priority).toLowerCase() === "priority" ? "senior/pwd/pregnant" : "regular";
+        String(formData.priority).toLowerCase() === "priority"
+          ? "senior/pwd/pregnant"
+          : "regular";
 
       const createQueueInput = {
         departmentId: Number(formData.departmentId),
@@ -162,6 +163,7 @@ const QueueForm = ({ onBack }) => {
       if (data?.createQueue) {
         setQueueNumber(data.createQueue);
         setShowModal(true);
+
         try {
           const deptId = Number(formData.departmentId);
           if (!Number.isNaN(deptId)) {
@@ -181,6 +183,13 @@ const QueueForm = ({ onBack }) => {
           }
         } catch (e) {
           console.warn("Broadcast channel not available:", e);
+        }
+
+        // Call onSuccess callback after a brief delay to show modal
+        if (onSuccess) {
+          setTimeout(() => {
+            onSuccess();
+          }, 2000);
         }
       }
     } catch (error) {
@@ -224,13 +233,13 @@ const QueueForm = ({ onBack }) => {
   const getStepSubtitle = () => {
     switch (currentStep) {
       case 1:
-        return "Choose your destination municipal department";
+        return "Choose the destination department";
       case 2:
-        return "Select the type of service you need";
+        return "Select the type of service";
       case 3:
-        return "Choose your priority level";
+        return "Choose priority level";
       case 4:
-        return "Review your information and generate queue number";
+        return "Review information and generate queue number";
       default:
         return "";
     }
@@ -252,32 +261,30 @@ const QueueForm = ({ onBack }) => {
 
   const hasDeptArray = Array.isArray(departmentsData?.departments);
   const hasServicesArray = Array.isArray(servicesData?.services);
-  if (!departmentsLoading && !servicesLoading && !hasDeptArray && !hasServicesArray) {
+  if (
+    !departmentsLoading &&
+    !servicesLoading &&
+    !hasDeptArray &&
+    !hasServicesArray
+  ) {
     return (
       <div className="home-container">
-        <Header />
         <div className="error-message">
           <p>Error loading data. Please refresh the page.</p>
           <p>
-            {(departmentsError?.graphQLErrors?.[0]?.message || departmentsError?.message ||
-              servicesError?.graphQLErrors?.[0]?.message || servicesError?.message) ?? ""}
+            {(departmentsError?.graphQLErrors?.[0]?.message ||
+              departmentsError?.message ||
+              servicesError?.graphQLErrors?.[0]?.message ||
+              servicesError?.message) ??
+              ""}
           </p>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="home-container">
-      <Header />
-      <div className="back-btn-container">
-        <button className="back-btn-header" onClick={() => navigate("/home")}>
-          <ArrowLeft className="back-icon" size={18} />
-          Back to Home
-        </button>
-      </div>
-
       <div className="queue-form-container">
         <div className="form-header">
           <div className="progress-container">
@@ -507,10 +514,13 @@ const QueueForm = ({ onBack }) => {
                 </button>
               )}
 
-              <button type="button" className="reset-btn" onClick={resetForm}>
-                <RotateCcw size={16} />
-                Reset
-              </button>
+              {/* Reset button only shows from step 2 onwards */}
+              {currentStep > 1 && (
+                <button type="button" className="reset-btn" onClick={resetForm}>
+                  <RotateCcw size={16} />
+                  Reset
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -522,12 +532,13 @@ const QueueForm = ({ onBack }) => {
             onClose={() => {
               setShowModal(false);
               resetForm();
+              if (onSuccess) {
+                onSuccess();
+              }
             }}
           />
         )}
       </div>
-
-      <Footer />
     </div>
   );
 };
