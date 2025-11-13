@@ -1,8 +1,14 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 
+const GRAPHQL_URI =
+  process.env.NODE_ENV === "production"
+    ? "https://queuecalape.onrender.com/graphql"
+    : "http://localhost:3000/graphql";
+
 const httpLink = createHttpLink({
-  uri: "https://queuecalape.onrender.com/graphql",
+  uri: GRAPHQL_URI,
+  credentials: "include",
 });
 
 const authLink = setContext((_, { headers }) => {
