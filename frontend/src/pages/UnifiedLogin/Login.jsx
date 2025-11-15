@@ -16,120 +16,126 @@ const Login = () => {
 
   const [login] = useMutation(LOGIN);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
 
-    try {
-      const { data } = await login({
-        variables: {
-          staffUsername: username,
-          staffPassword: password,
-        },
-      });
+  try {
+    console.log("🟢 LoginVariables:", {
+      staffUsername: username.trim(),
+      staffPassword: password.trim(),
+    });
 
-      const loginData = data?.login;
+    const { data } = await login({
+      variables: {
+        staffUsername: username.trim(),
+        staffPassword: password.trim(),
+      },
+    });
 
-      if (loginData?.success) {
-        const access_token = loginData.access_token || "";
+    const loginData = data?.login;
 
-        let role =
-          loginData.role?.trim().toLowerCase() ||
-          loginData.staff?.role?.roleName?.trim().toLowerCase() ||
-          "";
-
-        // Normalize role names for consistency
-        if (role.includes("queue") && role.includes("staff")) {
-          role = "queuestaff";
-        }
-
-        sessionStorage.clear();
-        localStorage.clear();
-
-        localStorage.setItem("token", access_token);
-        localStorage.setItem("role", role);
-        sessionStorage.setItem("userRole", role);
-
-        if (role === "admin") {
-          sessionStorage.setItem("isAdminLoggedIn", "true");
-          setTimeout(() => {
-            navigate("/admin/dashboard", { replace: true });
-          }, 100);
-        } else if (role === "queuestaff") {
-          // Queue Staff login logic
-          const staff = loginData.staff || {};
-          const department = staff.department || {};
-
-          const staffInfo = {
-            id: staff.staffId || Date.now(),
-            username: staff.staffUsername || username,
-            firstName: staff.staffFirstname || "",
-            lastName: staff.staffLastname || "",
-            role: "queuestaff",
-            department: department.departmentId ? {
-              id: parseInt(department.departmentId),
-              name: department.departmentName?.trim() || "",
-              prefix: department.prefix?.trim() || "",
-            } : null,
-            token: access_token,
-            loginTime: new Date().toISOString(),
-          };
-
-          sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
-          sessionStorage.setItem("isQueueStaffLoggedIn", "true");
-
-          setTimeout(() => {
-            navigate("/queuestaff/dashboard", { replace: true });
-          }, 100);
-        } else {
-          // Regular Staff login logic
-          const staff = loginData.staff || {};
-          const department = staff.department || {};
-
-          if (
-            !department.departmentId ||
-            !department.departmentName ||
-            !department.prefix
-          ) {
-            alert(
-              "Invalid department information received. Please contact administrator."
-            );
-            return;
-          }
-
-          const staffInfo = {
-            id: staff.staffId || Date.now(),
-            username: staff.staffUsername || username,
-            department: {
-              id: parseInt(department.departmentId),
-              name: department.departmentName.trim(),
-              prefix: department.prefix.trim(),
-            },
-            token: access_token,
-            loginTime: new Date().toISOString(),
-          };
-
-          sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
-
-          setTimeout(() => {
-            navigate("/staff/dashboard", { replace: true });
-          }, 100);
-        }
-      } else {
-        alert("Invalid credentials.");
-      }
-    } catch (error) {
-      if (error.graphQLErrors && error.graphQLErrors.length > 0) {
-        alert(`Login failed: ${error.graphQLErrors[0].message}`);
-      } else if (error.networkError) {
-        alert("Network error. Please check your connection and try again.");
-      } else {
-        alert("Login failed. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
+    if (!loginData?.success) {
+      alert("Invalid credentials.");
+      return;
     }
-  };
+
+    const access_token = loginData.access_token || "";
+
+    // Normalize role
+    let role =
+      loginData.role?.trim().toLowerCase() ||
+      loginData.staff?.role?.roleName?.trim().toLowerCase() ||
+      "";
+
+    if (role.includes("queue") && role.includes("staff")) {
+      role = "queuestaff";
+    }
+
+    // Clear previous session
+    sessionStorage.clear();
+    localStorage.clear();
+
+    localStorage.setItem("token", access_token);
+    localStorage.setItem("role", role);
+    sessionStorage.setItem("userRole", role);
+
+    const staff = loginData.staff || {};
+    const department = staff.department || {};
+
+    // Safe fallback for department
+    const dept = department.departmentId
+      ? {
+          id: parseInt(department.departmentId),
+          name: department.departmentName?.trim() || "",
+          prefix: department.prefix?.trim() || "",
+        }
+      : { id: 0, name: "", prefix: "" };
+
+    // Role-based routing and storage
+    if (role === "admin") {
+      sessionStorage.setItem("isAdminLoggedIn", "true");
+      setTimeout(() => {
+        navigate("/admin/dashboard", { replace: true });
+      }, 100);
+    } else if (role === "queuestaff") {
+      const staffInfo = {
+        id: staff.staffId || Date.now(),
+        username: staff.staffUsername || username,
+        firstName: staff.staffFirstname || "",
+        lastName: staff.staffLastname || "",
+        role: "queuestaff",
+        department: dept,
+        token: access_token,
+        loginTime: new Date().toISOString(),
+      };
+
+      sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+      sessionStorage.setItem("isQueueStaffLoggedIn", "true");
+
+      setTimeout(() => {
+        navigate("/queuestaff/dashboard", { replace: true });
+      }, 100);
+    } else {
+      // Regular staff
+      if (!dept.id || !dept.name || !dept.prefix) {
+        alert(
+          "Invalid department information received. Please contact administrator."
+        );
+        return;
+      }
+
+      const staffInfo = {
+        id: staff.staffId || Date.now(),
+        username: staff.staffUsername || username,
+        department: dept,
+        token: access_token,
+        loginTime: new Date().toISOString(),
+      };
+
+      sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+
+      setTimeout(() => {
+        navigate("/staff/dashboard", { replace: true });
+      }, 100);
+    }
+
+    console.log("🟢 Login successful:", { staff, role, dept, access_token });
+  } catch (error) {
+    console.error("❌ Login error:", error);
+
+    if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+      alert(`Login failed: ${error.graphQLErrors[0].message}`);
+    } else if (error.networkError) {
+      alert("Network error. Please check your connection and try again.");
+    } else {
+      alert("Login failed. Please try again.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
@@ -138,9 +144,13 @@ const Login = () => {
   return (
     <div className="login-page">
       <Header />
-      
+
       <div className="login-background">
-        <img src="/municipality.jpg" alt="Municipality Background" className="bg-image" />
+        <img
+          src="/municipality.jpg"
+          alt="Municipality Background"
+          className="bg-image"
+        />
         <div className="bg-overlay"></div>
         <div className="circle circle-1"></div>
         <div className="circle circle-2"></div>
@@ -152,11 +162,17 @@ const Login = () => {
           <div className="login-header">
             <div className="logo-container">
               <div className="logo">
-                <img src={logo} alt="CalapeServeQ Logo" className="logo-image" />
+                <img
+                  src={logo}
+                  alt="CalapeServeQ Logo"
+                  className="logo-image"
+                />
               </div>
             </div>
             <h1 className="login-title">Login</h1>
-            <p className="login-subtitle">Municipality of Calape Service Management</p>
+            <p className="login-subtitle">
+              Municipality of Calape Service Management
+            </p>
           </div>
 
           <form className="login-form" onSubmit={handleLogin}>

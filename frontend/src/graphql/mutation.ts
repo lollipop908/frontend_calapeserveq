@@ -9,6 +9,7 @@ export const LOGIN = gql`
       staff {
         staffId
         staffUsername
+        
         department {
           departmentId
           departmentName
