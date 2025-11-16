@@ -7,15 +7,19 @@ import {
   FiUsers,
   FiLogOut,
   FiSettings,
+  FiBarChart2,
+  FiFilter
 } from "react-icons/fi";
 import { MdDashboard } from "react-icons/md";
 import { Building2 } from "lucide-react";
 import "./styles/Dashboard.css";
 
+
 import ManageDepartment from "./ManageDepartment";
 import ManageStaff from "./ManageStaff";
 import ManageServices from "./ManageServices";
 import ManageProfile from "./ManageProfile";
+import ReportsPanel from "./ReportsPanel";
 
 import { useQuery } from "@apollo/client";
 import {
@@ -131,30 +135,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <h2>Quick Actions</h2>
-      <div className="action-buttons">
-        <button
-          className="action-btn primary"
-          onClick={() => setActiveSection("staff")}
-        >
-          <FiUsers className="action-icon" size={20} />
-          <span>Manage Staff</span>
-        </button>
-        <button
-          className="action-btn secondary"
-          onClick={() => setActiveSection("departments")}
-        >
-          <Building2 className="action-icon" size={20} />
-          <span>Manage Departments</span>
-        </button>
-        <button
-          className="action-btn tertiary"
-          onClick={() => setActiveSection("services")}
-        >
-          <FiSettings className="action-icon" size={20} />
-          <span>Manage Services</span>
-        </button>
-      </div>
+      <ReportsPanel departments={departments} />
     </div>
   );
 

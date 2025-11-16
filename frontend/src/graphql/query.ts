@@ -97,6 +97,11 @@ export const GET_ALL_QUEUES_DEPARTMENT = gql`
     Queue {
       queueId
       createdAt
+      status
+      department {
+        departmentId
+        departmentName
+      }
     }
   }
 `;
