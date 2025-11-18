@@ -542,7 +542,7 @@ const StaffDashboard = () => {
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={handleSettings}>
                     <Settings size={16} />
-                    <span>Settings</span>
+                    <span>Manage Account</span>
                   </button>
                   <button className="dropdown-item logout" onClick={handleLogout}>
                     <LogOut size={16} />

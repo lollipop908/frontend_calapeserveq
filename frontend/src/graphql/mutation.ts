@@ -92,6 +92,19 @@ export const UPDATE_ADMIN_PROFILE = gql`
     }
   }
 `;
+
+export const UPDATE_QUEUESATFF_PROFILE = gql`
+  mutation UpdateStaff($updateStaffInput: UpdateStaffInput!) {
+    updateStaff(updateStaffInput: $updateStaffInput) {
+      staffId
+      staffUsername
+      staffPassword
+      staffFirstname
+      staffLastname
+    }
+  }
+`;
+
 export const DELETE_STAFF = gql`
   mutation RemoveStaff($staffId: Int!) {
     removeStaff(staffId: $staffId) {

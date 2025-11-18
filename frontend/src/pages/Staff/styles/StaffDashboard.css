@@ -350,6 +350,14 @@ body {
   margin-bottom: 8px;
 }
 
+.no-ticket-message {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
 .serving-details {
   font-size: 13px;
   color: var(--text-secondary);
@@ -609,12 +617,12 @@ body {
   white-space: nowrap;
 }
 
-.badge.priority.priority {
+.badge.priority {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger-color);
 }
 
-.badge.priority.regular {
+.badge.regular {
   background: rgba(148, 163, 184, 0.1);
   color: var(--text-muted);
 }
@@ -666,6 +674,24 @@ body {
   font-weight: 500;
 }
 
+/* Ensure buttons are always visible */
+.now-serving-card .action-buttons {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Make sure the buttons container doesn't get hidden */
+.now-serving-card > .action-buttons {
+  display: flex !important;
+}
+
+/* Force display of buttons */
+.call-next-btn, .repeat-call-btn {
+  display: flex !important;
+  visibility: visible !important;
+}
+
 @media (max-width: 768px) {
   .staff-panel {
     padding: 16px;
@@ -688,11 +714,13 @@ body {
   
   .action-buttons {
     width: 100%;
+    display: flex !important;
   }
   
   .call-next-btn,
   .repeat-call-btn {
     flex: 1;
+    display: flex !important;
   }
   
   .stats-grid {
@@ -713,6 +741,10 @@ body {
     font-size: 28px;
   }
   
+  .no-ticket-message {
+    font-size: 16px;
+  }
+  
   .stat-number {
     font-size: 24px;
   }
@@ -725,5 +757,14 @@ body {
   
   .queue-col {
     padding: 6px 0;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .call-next-btn,
+  .repeat-call-btn {
+    width: 100%;
   }
 }

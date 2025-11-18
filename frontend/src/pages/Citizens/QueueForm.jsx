@@ -10,12 +10,15 @@ import {
   RotateCcw,
   Check,
   ArrowLeft,
+  User,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import "./styles/QueueForm.css";
 import QueueModal from "./QueueModal";
 import { useNavigate } from "react-router-dom";
-import { GET_DEPARTMENTS, GET_SERVICES } from "../../graphql/query";
-import { CREATE_QUEUE } from "../../graphql/mutation";
+import { GET_DEPARTMENTS, GET_SERVICES, GET_QUEUESTAFF_PROFILE } from "../../graphql/query";
+import { CREATE_QUEUE, UPDATE_QUEUESATFF_PROFILE } from "../../graphql/mutation";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 
@@ -27,6 +30,40 @@ const QueueForm = ({ onSuccess }) => {
     serviceId: "",
     priority: "",
   });
+  const [queueStaffMenuOpen, setQueueStaffMenuOpen] = useState(false);
+
+  // Get staffId from localStorage only
+  const staffId = localStorage.getItem("staffId") || localStorage.getItem("userId");
+
+  console.log("Retrieved staffId:", staffId);
+  console.log("staffId type:", typeof staffId);
+  console.log("Parsed staffId:", staffId ? parseInt(staffId, 10) : null); // Debug log
+
+  const {
+    data: staffData,
+    loading: staffLoading,
+    error: staffError,
+    refetch: refetchStaff
+  } = useQuery(GET_QUEUESTAFF_PROFILE, {
+    variables: { 
+      staffId: staffId ? parseInt(staffId, 10) : null 
+    },
+    skip: !staffId,
+    fetchPolicy: "network-only",
+    onCompleted: (data) => {
+      console.log("Staff query completed:", data);
+    },
+    onError: (error) => {
+      console.error("Staff query error:", error);
+    }
+  });
+
+  console.log("Staff query result:", { staffData, staffLoading, staffError }); // Debug log
+
+  // Handle different possible response structures
+  const staffInfo = staffData?.staff || staffData?.getQueueStaffProfile || staffData?.queueStaff || null;
+  
+  console.log("Full staffData response:", staffData); // Debug the full response
 
   const {
     data: departmentsData,
@@ -72,6 +109,7 @@ const QueueForm = ({ onSuccess }) => {
   }, [departmentsData, servicesData]);
 
   const [createQueue] = useMutation(CREATE_QUEUE);
+  const [updateStaff] = useMutation(UPDATE_QUEUESATFF_PROFILE);
 
   const [queueNumber, setQueueNumber] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -91,34 +129,6 @@ const QueueForm = ({ onSuccess }) => {
       setFilteredServices([]);
     }
   }, [formData.departmentId, servicesData]);
-
-  // Auto-advance to next step when selection is made
-  useEffect(() => {
-    if (currentStep === 1 && formData.departmentId) {
-      const timer = setTimeout(() => {
-        setCurrentStep(2);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [formData.departmentId, currentStep]);
-
-  useEffect(() => {
-    if (currentStep === 2 && formData.serviceId) {
-      const timer = setTimeout(() => {
-        setCurrentStep(3);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [formData.serviceId, currentStep]);
-
-  useEffect(() => {
-    if (currentStep === 3 && formData.priority) {
-      const timer = setTimeout(() => {
-        setCurrentStep(4);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [formData.priority, currentStep]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -215,7 +225,6 @@ const QueueForm = ({ onSuccess }) => {
           console.warn("Broadcast channel not available:", e);
         }
 
-        // Call onSuccess callback after a brief delay to show modal
         if (onSuccess) {
           setTimeout(() => {
             onSuccess();
@@ -243,6 +252,17 @@ const QueueForm = ({ onSuccess }) => {
     });
     setCurrentStep(1);
     setError("");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("staffId");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  const handleManageAccount = () => {
+    navigate("/staff/profile");
   };
 
   const getStepTitle = () => {
@@ -291,6 +311,46 @@ const QueueForm = ({ onSuccess }) => {
 
   const hasDeptArray = Array.isArray(departmentsData?.departments);
   const hasServicesArray = Array.isArray(servicesData?.services);
+  
+  // Show loading state while fetching staff data
+  if (staffLoading) {
+    return (
+      <div className="queue-page-wrapper">
+        <Header />
+        <div className="queue-home-container">
+          <div className="queue-loading-message">
+            <Loader2 className="queue-spinner" size={24} />
+            <p>Loading staff information...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show error if staff data fails to load
+  if (staffError) {
+    console.error("Staff query error details:", staffError);
+    return (
+      <div className="queue-page-wrapper">
+        <Header />
+        <div className="queue-home-container">
+          <div className="queue-error-message">
+            <p>Error loading staff information: {staffError.message}</p>
+            <p>Staff ID used: {staffId}</p>
+            <button 
+              className="queue-retry-btn" 
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   if (
     !departmentsLoading &&
     !servicesLoading &&
@@ -300,8 +360,8 @@ const QueueForm = ({ onSuccess }) => {
     return (
       <div className="queue-page-wrapper">
         <Header />
-        <div className="home-container">
-          <div className="error-message">
+        <div className="queue-home-container">
+          <div className="queue-error-message">
             <p>Error loading data. Please refresh the page.</p>
             <p>
               {(departmentsError?.graphQLErrors?.[0]?.message ||
@@ -317,69 +377,111 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
+  // Get staff display info from fetched GraphQL data with better error handling
+  const staffDisplayName = staffInfo
+    ? `${staffInfo.staffFirstname || staffInfo.firstName || ''} ${staffInfo.staffLastname || staffInfo.lastName || ''}`.trim()
+    : "Loading...";
+
+  console.log("Staff info for display:", { 
+    staffInfo, 
+    staffDisplayName,
+    fullStaffData: staffData 
+  }); // Debug log
+
   return (
     <div className="queue-page-wrapper">
       <Header />
-      <div className="home-container">
+      <div className="queue-home-container">
+        {/* Enhanced User Menu */}
+        <div className="queue-staff-menu-container">
+          <button 
+            className="queue-staff-menu-toggle"
+            onClick={() => setQueueStaffMenuOpen(!queueStaffMenuOpen)}
+          >
+            <div className="queue-staff-avatar">
+              <User size={20} />
+            </div>
+            <div className="queue-staff-info">
+              <span className="queue-staff-name">{staffDisplayName}</span>
+              <span className="queue-staff-role">staff</span>
+            </div>
+            <ChevronDown size={18} className={`queue-staff-chevron ${queueStaffMenuOpen ? 'queue-staff-chevron-open' : ''}`} />
+          </button>
+          
+          {queueStaffMenuOpen && (
+            <div className="queue-staff-menu-dropdown">
+              <button className="queue-staff-menu-item" onClick={handleManageAccount}>
+                <Settings size={18} />
+                <span>Manage Account</span>
+              </button>
+              <div className="queue-staff-menu-divider"></div>
+              <button className="queue-staff-menu-item queue-staff-menu-logout" onClick={handleLogout}>
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="queue-form-container">
-          <div className="form-header">
-            <div className="progress-container">
-              <div className="progress-steps">
+          <div className="queue-form-header">
+            <div className="queue-progress-container">
+              <div className="queue-progress-steps">
                 {[1, 2, 3, 4].map((step) => (
                   <div
                     key={step}
-                    className={`progress-step ${currentStep >= step ? "active" : ""} ${currentStep > step ? "completed" : ""}`}
+                    className={`queue-progress-step ${currentStep >= step ? "queue-progress-step-active" : ""} ${currentStep > step ? "queue-progress-step-completed" : ""}`}
                   >
-                    <div className="step-circle">
+                    <div className="queue-step-circle">
                       {currentStep > step ? <Check size={14} /> : step}
                     </div>
-                    <div className="step-label">Step {step}</div>
+                    <div className="queue-step-label">Step {step}</div>
                   </div>
                 ))}
               </div>
-              <div className="progress-bar">
+              <div className="queue-progress-bar">
                 <div
-                  className="progress-fill"
+                  className="queue-progress-fill"
                   style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
                 ></div>
               </div>
             </div>
 
-            <div className="form-title-section">
-              <h2 className="form-title">{getStepTitle()}</h2>
-              <p className="form-subtitle">{getStepSubtitle()}</p>
+            <div className="queue-form-title-section">
+              <h2 className="queue-form-title">{getStepTitle()}</h2>
+              <p className="queue-form-subtitle">{getStepSubtitle()}</p>
             </div>
           </div>
 
-          <div className="form-wrapper">
+          <div className="queue-form-wrapper">
             {error && (
-              <div className="error-message">
+              <div className="queue-error-message">
                 <p>{error}</p>
               </div>
             )}
 
             <div className="queue-form">
-              <div className="form-slides">
+              <div className="queue-form-slides">
                 {currentStep === 1 && (
-                  <div className="form-slide active">
-                    <div className="form-section">
-                      <div className="section-header">
+                  <div className="queue-form-slide queue-form-slide-active">
+                    <div className="queue-form-section">
+                      <div className="queue-section-header">
                         <h3>
-                          <Building2 className="section-icon" size={20} />
+                          <Building2 className="queue-section-icon" size={20} />
                           Select Department
                         </h3>
                       </div>
 
-                      <div className="form-group">
+                      <div className="queue-form-group">
                         <label htmlFor="departmentId">Department</label>
-                        <div className="select-wrapper">
+                        <div className="queue-select-wrapper">
                           <select
                             id="departmentId"
                             name="departmentId"
                             value={formData.departmentId}
                             onChange={handleChange}
                             required
-                            className="form-select"
+                            className="queue-form-select"
                             disabled={departmentsLoading}
                           >
                             <option value="" disabled>
@@ -396,7 +498,7 @@ const QueueForm = ({ onSuccess }) => {
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="select-arrow" size={14} />
+                          <ChevronDown className="queue-select-arrow" size={14} />
                         </div>
                       </div>
                     </div>
@@ -404,25 +506,25 @@ const QueueForm = ({ onSuccess }) => {
                 )}
 
                 {currentStep === 2 && (
-                  <div className="form-slide active">
-                    <div className="form-section">
-                      <div className="section-header">
+                  <div className="queue-form-slide queue-form-slide-active">
+                    <div className="queue-form-section">
+                      <div className="queue-section-header">
                         <h3>
-                          <Users className="section-icon" size={20} />
+                          <Users className="queue-section-icon" size={20} />
                           Type of Service
                         </h3>
                       </div>
 
-                      <div className="form-group">
+                      <div className="queue-form-group">
                         <label htmlFor="serviceId">Service Type</label>
-                        <div className="select-wrapper">
+                        <div className="queue-select-wrapper">
                           <select
                             id="serviceId"
                             name="serviceId"
                             value={formData.serviceId}
                             onChange={handleChange}
                             required
-                            className="form-select"
+                            className="queue-form-select"
                             disabled={servicesLoading || !formData.departmentId}
                           >
                             <option value="" disabled>
@@ -441,7 +543,7 @@ const QueueForm = ({ onSuccess }) => {
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="select-arrow" size={14} />
+                          <ChevronDown className="queue-select-arrow" size={14} />
                         </div>
                       </div>
                     </div>
@@ -449,25 +551,25 @@ const QueueForm = ({ onSuccess }) => {
                 )}
 
                 {currentStep === 3 && (
-                  <div className="form-slide active">
-                    <div className="form-section">
-                      <div className="section-header">
+                  <div className="queue-form-slide queue-form-slide-active">
+                    <div className="queue-form-section">
+                      <div className="queue-section-header">
                         <h3>
-                          <Users className="section-icon" size={20} />
+                          <Users className="queue-section-icon" size={20} />
                           Priority Level
                         </h3>
                       </div>
 
-                      <div className="form-group">
+                      <div className="queue-form-group">
                         <label htmlFor="priority">Priority Level</label>
-                        <div className="select-wrapper">
+                        <div className="queue-select-wrapper">
                           <select
                             id="priority"
                             name="priority"
                             value={formData.priority}
                             onChange={handleChange}
                             required
-                            className="form-select"
+                            className="queue-form-select"
                           >
                             <option value="" disabled>
                               -- Select Priority --
@@ -477,7 +579,7 @@ const QueueForm = ({ onSuccess }) => {
                               Priority (Senior/PWD/Pregnant)
                             </option>
                           </select>
-                          <ChevronDown className="select-arrow" size={14} />
+                          <ChevronDown className="queue-select-arrow" size={14} />
                         </div>
                       </div>
                     </div>
@@ -485,22 +587,22 @@ const QueueForm = ({ onSuccess }) => {
                 )}
 
                 {currentStep === 4 && (
-                  <div className="form-slide active">
-                    <div className="form-section">
-                      <div className="section-header">
+                  <div className="queue-form-slide queue-form-slide-active">
+                    <div className="queue-form-section">
+                      <div className="queue-section-header">
                         <h3>Review Your Information</h3>
                       </div>
 
-                      <div className="review-info">
-                        <div className="review-item">
+                      <div className="queue-review-info">
+                        <div className="queue-review-item">
                           <strong>Department:</strong>
                           <span>{getSelectedDepartmentName()}</span>
                         </div>
-                        <div className="review-item">
+                        <div className="queue-review-item">
                           <strong>Service Type:</strong>
                           <span>{getSelectedServiceName()}</span>
                         </div>
-                        <div className="review-item">
+                        <div className="queue-review-item">
                           <strong>Priority Level:</strong>
                           <span>{formData.priority}</span>
                         </div>
@@ -511,12 +613,12 @@ const QueueForm = ({ onSuccess }) => {
               </div>
 
               {/* Form Actions */}
-              <div className="form-actions">
-                <div className="actions-left">
+              <div className="queue-form-actions">
+                <div className="queue-actions-left">
                   {currentStep > 1 && (
                     <button
                       type="button"
-                      className="previous-btn"
+                      className="queue-previous-btn"
                       onClick={handlePrevious}
                       disabled={isSubmitting}
                     >
@@ -526,16 +628,29 @@ const QueueForm = ({ onSuccess }) => {
                   )}
                 </div>
 
-                <div className="actions-center">
+                <div className="queue-actions-center">
+                  {currentStep >= 2 && (
+                    <button 
+                      type="button" 
+                      className="queue-reset-btn" 
+                      onClick={resetForm}
+                    >
+                      <RotateCcw size={16} />
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                <div className="queue-actions-right">
                   {currentStep < 4 ? (
-                    <button type="button" className="next-btn" onClick={handleNext}>
+                    <button type="button" className="queue-next-btn" onClick={handleNext}>
                       Next
                       <ArrowRight size={16} />
                     </button>
                   ) : (
                     <button
                       type="button"
-                      className={`submit-btn ${isSubmitting ? "loading" : ""}`}
+                      className={`queue-submit-btn ${isSubmitting ? "queue-submit-btn-loading" : ""}`}
                       disabled={isSubmitting}
                       onClick={handleSubmit}
                     >
@@ -546,19 +661,10 @@ const QueueForm = ({ onSuccess }) => {
                         </>
                       ) : (
                         <>
-                          <Loader2 className="spinner" size={18} />
+                          <Loader2 className="queue-spinner" size={18} />
                           <span>Processing...</span>
                         </>
                       )}
-                    </button>
-                  )}
-                </div>
-
-                <div className="actions-right">
-                  {currentStep > 1 && (
-                    <button type="button" className="reset-btn" onClick={resetForm}>
-                      <RotateCcw size={16} />
-                      Reset
                     </button>
                   )}
                 </div>
