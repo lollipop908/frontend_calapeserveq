@@ -6,6 +6,7 @@ import "./styles/Login.css";
 import logo from "/calapelogo.png";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
+import Swal from "sweetalert2";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -21,11 +22,6 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log("🟢 LoginVariables:", {
-        staffUsername: username.trim(),
-        staffPassword: password.trim(),
-      });
-
       const { data } = await login({
         variables: {
           staffUsername: username.trim(),
@@ -36,20 +32,22 @@ const Login = () => {
       const loginData = data?.login;
 
       if (!loginData?.success) {
-        alert("Invalid credentials.");
+        Swal.fire({
+          icon: "error",
+          title: "Invalid credentials",
+          text: "Please check your username and password.",
+          confirmButtonColor: "#3085d6",
+        });
         return;
       }
 
       const access_token = loginData.access_token || "";
-
       let role =
         loginData.role?.trim().toLowerCase() ||
         loginData.staff?.role?.roleName?.trim().toLowerCase() ||
         "";
 
-      if (role.includes("queue") && role.includes("staff")) {
-        role = "queuestaff";
-      }
+      if (role.includes("queue") && role.includes("staff")) role = "queuestaff";
 
       sessionStorage.clear();
       localStorage.clear();
@@ -59,7 +57,6 @@ const Login = () => {
 
       const staff = loginData.staff || {};
       const department = staff.department || {};
-
       const dept = department.departmentId
         ? {
             id: parseInt(department.departmentId),
@@ -68,74 +65,77 @@ const Login = () => {
           }
         : { id: 0, name: "", prefix: "" };
 
-      if (role === "admin") {
-        sessionStorage.setItem("isAdminLoggedIn", "true");
-        setTimeout(() => {
+      Swal.fire({
+        icon: "success",
+        title: "Login successful",
+        text: `Welcome ${staff.staffFirstname || ""}! Redirecting...`,
+        showConfirmButton: false,
+        timer: 1500,
+        timerProgressBar: true,
+      });
+
+      setTimeout(() => {
+        if (role === "admin") {
+          sessionStorage.setItem("isAdminLoggedIn", "true");
           navigate("/admin/dashboard", { replace: true });
-        }, 100);
-      } else if (role === "queuestaff") {
-        const staffInfo = {
-          id: staff.staffId || Date.now(),
-          username: staff.staffUsername || username,
-          firstName: staff.staffFirstname || "",
-          lastName: staff.staffLastname || "",
-          role: "queuestaff",
-          department: dept,
-          token: access_token,
-          loginTime: new Date().toISOString(),
-        };
-        localStorage.setItem("staffId", staff.staffId);
-        localStorage.setItem("staffUsername", staff.staffUsername);
-        localStorage.setItem("staffRole", role);
-        localStorage.setItem("staffDepartment", dept.name);
-        sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
-        sessionStorage.setItem("isQueueStaffLoggedIn", "true");
-
-        setTimeout(() => {
+        } else if (role === "queuestaff") {
+          const staffInfo = {
+            id: staff.staffId || Date.now(),
+            username: staff.staffUsername || username,
+            firstName: staff.staffFirstname || "",
+            lastName: staff.staffLastname || "",
+            role: "queuestaff",
+            department: dept,
+            token: access_token,
+            loginTime: new Date().toISOString(),
+          };
+          localStorage.setItem("staffId", staff.staffId);
+          localStorage.setItem("staffUsername", staff.staffUsername);
+          localStorage.setItem("staffRole", role);
+          localStorage.setItem("staffDepartment", dept.name);
+          sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+          sessionStorage.setItem("isQueueStaffLoggedIn", "true");
           navigate("/queuestaff/dashboard", { replace: true });
-        }, 100);
-      } else {
-        if (!dept.id || !dept.name || !dept.prefix) {
-          alert(
-            "Invalid department information received. Please contact administrator."
-          );
-          return;
-        }
-
-        const staffInfo = {
-          id: staff.staffId || Date.now(),
-          username: staff.staffUsername || username,
-          department: dept,
-          token: access_token,
-          loginTime: new Date().toISOString(),
-        };
-
-        sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
-
-        setTimeout(() => {
+        } else {
+          if (!dept.id || !dept.name || !dept.prefix) {
+            Swal.fire({
+              icon: "error",
+              title: "Invalid department information",
+              text: "Please contact administrator.",
+              confirmButtonColor: "#3085d6",
+            });
+            return;
+          }
+          const staffInfo = {
+            id: staff.staffId || Date.now(),
+            username: staff.staffUsername || username,
+            department: dept,
+            token: access_token,
+            loginTime: new Date().toISOString(),
+          };
+          sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
           navigate("/staff/dashboard", { replace: true });
-        }, 100);
-      }
-
-      console.log("🟢 Login successful:", { staff, role, dept, access_token });
+        }
+      }, 1500);
     } catch (error) {
-      console.error("❌ Login error:", error);
+      console.error("Login error:", error);
+      let message = "Login failed. Please try again.";
+      if (error.graphQLErrors?.length) message = error.graphQLErrors[0].message;
+      else if (error.networkError)
+        message = "Network error. Check your connection.";
 
-      if (error.graphQLErrors && error.graphQLErrors.length > 0) {
-        alert(`Login failed: ${error.graphQLErrors[0].message}`);
-      } else if (error.networkError) {
-        alert("Network error. Please check your connection and try again.");
-      } else {
-        alert("Login failed. Please try again.");
-      }
+      Swal.fire({
+        icon: "error",
+        title: "Login failed",
+        text: message,
+        confirmButtonColor: "#3085d6",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
+  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
   return (
     <div className="login-page">
@@ -210,24 +210,7 @@ const Login = () => {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
-                  <svg
-                    className="eye-icon"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    {showPassword ? (
-                      <>
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </>
-                    )}
-                  </svg>
+                  {}
                 </button>
               </div>
             </div>

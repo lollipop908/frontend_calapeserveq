@@ -112,8 +112,9 @@
 }
 
 .modal-header {
+  position: relative; /* needed if using absolute positioning for the button */
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* title on left, button on right */
   align-items: center;
   margin-bottom: 32px;
 }
@@ -135,11 +136,14 @@
   padding: 10px;
   border-radius: 10px;
   transition: all 0.2s;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .close-modal-btn:hover {
@@ -148,7 +152,7 @@
   transform: rotate(90deg);
 }
 
-/* Form Elements */
+
 .form-group {
   margin-bottom: 28px;
 }

@@ -33,6 +33,7 @@ html, body {
 .bg-image {
   width: 100%;
   height: 100%;
+ 
   object-fit: cover;
   object-position: center;
   filter: blur(3px);
@@ -87,10 +88,13 @@ html, body {
   margin-bottom: 5px;
 }
 
-.logo-container {
-  margin-bottom: 1px;
-}
 
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: rem; 
+}
 
 
 .logo-image {

@@ -29,7 +29,7 @@ import {
 } from "../../graphql/query";
 
 import logo from "/calapelogo.png";
-
+import Swal from "sweetalert2";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -82,11 +82,34 @@ const AdminDashboard = () => {
 }, [staffData]);
 
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    localStorage.clear();
-    navigate("/login");
-  };
+ const handleLogout = () => {
+  Swal.fire({
+    title: "Are you sure you want to logout?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, logout",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      
+      sessionStorage.clear();
+      localStorage.clear();
+      navigate("/login");
+
+      
+      Swal.fire({
+        icon: "success",
+        title: "You have logged out successfully",
+        showConfirmButton: false,
+        timer: 1500, 
+        timerProgressBar: true,
+      });
+    }
+  });
+};
+
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
