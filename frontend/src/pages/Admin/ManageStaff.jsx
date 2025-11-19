@@ -105,26 +105,37 @@ const ManageStaff = () => {
       }
       setEditingStaff(null);
     } else {
-      try {
-        await createStaff({
-          variables: {
-            createStaffInput: {
-              staffFirstname: newStaff.firstName,
-              staffLastname: newStaff.lastName,
-              staffUsername: newStaff.username,
-              roleId: parseInt(newStaff.roleId),
-              departmentId: parseInt(newStaff.departmentId),
-            },
-          },
-        });
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong!",
-          footer: '<a href="#">Why do I have this issue?</a>',
-        });
-      }
+     try {
+  const { data } = await createStaff({
+    variables: {
+      createStaffInput: {
+        staffFirstname: newStaff.firstName,
+        staffLastname: newStaff.lastName,
+        staffUsername: newStaff.username,
+        roleId: parseInt(newStaff.roleId),
+        departmentId: parseInt(newStaff.departmentId),
+      },
+    },
+  });
+
+  console.log("Staff created:", data);
+
+  refetchStaff();
+
+  Swal.fire({
+    icon: "success",
+    title: "Staff member created!",
+    text: "The new staff record was added successfully. Temporary password has been sent to their email.",
+    confirmButtonColor: "#3085d6",
+  });
+} catch (error) {
+  Swal.fire({
+    icon: "error",
+    title: "Oops...",
+    text: error.message || "Something went wrong!",
+    footer: '<a href="#">Why do I have this issue?</a>',
+  });
+}
     }
 
     setNewStaff({

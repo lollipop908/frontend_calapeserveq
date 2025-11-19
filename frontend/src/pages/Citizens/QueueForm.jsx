@@ -30,13 +30,15 @@ const QueueForm = ({ onSuccess }) => {
     serviceId: "",
     priority: "",
   });
+  
   const [queueStaffMenuOpen, setQueueStaffMenuOpen] = useState(false);
 
+  const staffUsername = localStorage.getItem("staffUsername")
   const staffId = localStorage.getItem("staffId") || localStorage.getItem("userId");
 
   console.log("Retrieved staffId:", staffId);
   console.log("staffId type:", typeof staffId);
-  console.log("Parsed staffId:", staffId ? parseInt(staffId, 10) : null); 
+  console.log("Parsed staffId:", staffId ? parseInt(staffId, 10) : null); // Debug log
 
   const {
     data: staffData,
@@ -59,9 +61,10 @@ const QueueForm = ({ onSuccess }) => {
 
   console.log("Staff query result:", { staffData, staffLoading, staffError }); 
 
+
   const staffInfo = staffData?.staff || staffData?.getQueueStaffProfile || staffData?.queueStaff || null;
   
-  console.log("Full staffData response:", staffData);
+  console.log("Full staffData response:", staffData); 
 
   const {
     data: departmentsData,
@@ -310,6 +313,7 @@ const QueueForm = ({ onSuccess }) => {
   const hasDeptArray = Array.isArray(departmentsData?.departments);
   const hasServicesArray = Array.isArray(servicesData?.services);
   
+  // Show loading state while fetching staff data
   if (staffLoading) {
     return (
       <div className="queue-page-wrapper">
@@ -325,6 +329,7 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
+  // Show error if staff data fails to load
   if (staffError) {
     console.error("Staff query error details:", staffError);
     return (
@@ -373,22 +378,23 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
-  // Get staff display info from fetched GraphQL data with better error handling
+
   const staffDisplayName = staffInfo
     ? `${staffInfo.staffFirstname || staffInfo.firstName || ''} ${staffInfo.staffLastname || staffInfo.lastName || ''}`.trim()
     : "Loading...";
 
   console.log("Staff info for display:", { 
-    staffInfo, 
-    staffDisplayName,
-    fullStaffData: staffData 
-  }); // Debug log
+    staffUsername,
+    // staffInfo, 
+    // staffDisplayName,
+    // fullStaffData: staffData 
+  }); 
 
   return (
     <div className="queue-page-wrapper">
       <Header />
       <div className="queue-home-container">
-        {/* Enhanced User Menu */}
+        {}
         <div className="queue-staff-menu-container">
           <button 
             className="queue-staff-menu-toggle"
@@ -398,7 +404,7 @@ const QueueForm = ({ onSuccess }) => {
               <User size={20} />
             </div>
             <div className="queue-staff-info">
-              <span className="queue-staff-name">{staffDisplayName}</span>
+              <span className="queue-staff-name">{staffUsername}</span>
               <span className="queue-staff-role">staff</span>
             </div>
             <ChevronDown size={18} className={`queue-staff-chevron ${queueStaffMenuOpen ? 'queue-staff-chevron-open' : ''}`} />

@@ -35,11 +35,24 @@ const ManageServices = () => {
     useQuery(GET_SERVICES);
   const { data: departmentsData } = useQuery(GET_DEPARTMENTS);
 
-  const [createService] = useMutation(CREATE_SERVICE, {
-    onCompleted: () => {
-      refetchServices();
-    },
-  });
+const [createService] = useMutation(CREATE_SERVICE, {
+  onCompleted: () => {
+    refetchServices();
+    Swal.fire({
+      icon: "success",
+      title: "Service created!",
+      text: "The new service has been added successfully.",
+      confirmButtonColor: "#3085d6",
+    });
+  },
+  onError: (error) => {
+    Swal.fire({
+      icon: "error",
+      title: "Oops...",
+      text: error.message || "Something went wrong!",
+    });
+  },
+});
 
   const [updateService] = useMutation(UPDATE_SERVICE, {
     onCompleted: () => {
