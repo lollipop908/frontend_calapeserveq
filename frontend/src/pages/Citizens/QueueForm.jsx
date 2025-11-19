@@ -32,12 +32,11 @@ const QueueForm = ({ onSuccess }) => {
   });
   const [queueStaffMenuOpen, setQueueStaffMenuOpen] = useState(false);
 
-  // Get staffId from localStorage only
   const staffId = localStorage.getItem("staffId") || localStorage.getItem("userId");
 
   console.log("Retrieved staffId:", staffId);
   console.log("staffId type:", typeof staffId);
-  console.log("Parsed staffId:", staffId ? parseInt(staffId, 10) : null); // Debug log
+  console.log("Parsed staffId:", staffId ? parseInt(staffId, 10) : null); 
 
   const {
     data: staffData,
@@ -58,12 +57,11 @@ const QueueForm = ({ onSuccess }) => {
     }
   });
 
-  console.log("Staff query result:", { staffData, staffLoading, staffError }); // Debug log
+  console.log("Staff query result:", { staffData, staffLoading, staffError }); 
 
-  // Handle different possible response structures
   const staffInfo = staffData?.staff || staffData?.getQueueStaffProfile || staffData?.queueStaff || null;
   
-  console.log("Full staffData response:", staffData); // Debug the full response
+  console.log("Full staffData response:", staffData);
 
   const {
     data: departmentsData,
@@ -312,7 +310,6 @@ const QueueForm = ({ onSuccess }) => {
   const hasDeptArray = Array.isArray(departmentsData?.departments);
   const hasServicesArray = Array.isArray(servicesData?.services);
   
-  // Show loading state while fetching staff data
   if (staffLoading) {
     return (
       <div className="queue-page-wrapper">
@@ -328,7 +325,6 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
-  // Show error if staff data fails to load
   if (staffError) {
     console.error("Staff query error details:", staffError);
     return (

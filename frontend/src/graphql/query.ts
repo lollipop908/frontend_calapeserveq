@@ -23,6 +23,7 @@ export const GET_DEPARTMENTS = gql`
 export const GET_ALL_STAFF = gql`
   query Query {
   staffs {
+  staffId
     department {
       departmentName
     }
@@ -63,23 +64,22 @@ export const GET_STAFF_PROFILE = gql`
       staffId
       staffFirstname
       staffLastname
-      staffUsername
-      
+      staffUsername      
       }
     }
 `;
 
 export const GET_QUEUESTAFF_PROFILE = gql`
-  query Staff($staffId: Int!) {
+  query Query($staffId: Int!) {
     staff(staffId: $staffId) {
       staffId
       staffFirstname
       staffLastname
       staffUsername
-      
-      }
     }
+  }
 `;
+
 
 export const GET_SERVICES = gql`
   query Services {
@@ -99,7 +99,7 @@ export const GET_QUEUES_BY_DEPARTMENT = gql`
       queueId
       number
       priority
-      status
+      status  
       createdAt
       department {
         departmentId

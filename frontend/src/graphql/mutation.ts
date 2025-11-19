@@ -106,7 +106,7 @@ export const UPDATE_QUEUESATFF_PROFILE = gql`
 `;
 
 export const DELETE_STAFF = gql`
-  mutation RemoveStaff($staffId: Int!) {
+  mutation removeStaff($staffId: Int!) {
     removeStaff(staffId: $staffId) {
       staffId
     }

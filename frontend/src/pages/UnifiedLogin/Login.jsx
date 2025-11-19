@@ -16,126 +16,122 @@ const Login = () => {
 
   const [login] = useMutation(LOGIN);
 
- const handleLogin = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-  try {
-    console.log("🟢 LoginVariables:", {
-      staffUsername: username.trim(),
-      staffPassword: password.trim(),
-    });
-
-    const { data } = await login({
-      variables: {
+    try {
+      console.log("🟢 LoginVariables:", {
         staffUsername: username.trim(),
         staffPassword: password.trim(),
-      },
-    });
+      });
 
-    const loginData = data?.login;
+      const { data } = await login({
+        variables: {
+          staffUsername: username.trim(),
+          staffPassword: password.trim(),
+        },
+      });
 
-    if (!loginData?.success) {
-      alert("Invalid credentials.");
-      return;
-    }
+      const loginData = data?.login;
 
-    const access_token = loginData.access_token || "";
-
-    // Normalize role
-    let role =
-      loginData.role?.trim().toLowerCase() ||
-      loginData.staff?.role?.roleName?.trim().toLowerCase() ||
-      "";
-
-    if (role.includes("queue") && role.includes("staff")) {
-      role = "queuestaff";
-    }
-
-    // Clear previous session
-    sessionStorage.clear();
-    localStorage.clear();
-
-    localStorage.setItem("token", access_token);
-    localStorage.setItem("role", role);
-    sessionStorage.setItem("userRole", role);
-
-    const staff = loginData.staff || {};
-    const department = staff.department || {};
-
-    // Safe fallback for department
-    const dept = department.departmentId
-      ? {
-          id: parseInt(department.departmentId),
-          name: department.departmentName?.trim() || "",
-          prefix: department.prefix?.trim() || "",
-        }
-      : { id: 0, name: "", prefix: "" };
-
-    // Role-based routing and storage
-    if (role === "admin") {
-      sessionStorage.setItem("isAdminLoggedIn", "true");
-      setTimeout(() => {
-        navigate("/admin/dashboard", { replace: true });
-      }, 100);
-    } else if (role === "queuestaff") {
-      const staffInfo = {
-        id: staff.staffId || Date.now(),
-        username: staff.staffUsername || username,
-        firstName: staff.staffFirstname || "",
-        lastName: staff.staffLastname || "",
-        role: "queuestaff",
-        department: dept,
-        token: access_token,
-        loginTime: new Date().toISOString(),
-      };
-
-      sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
-      sessionStorage.setItem("isQueueStaffLoggedIn", "true");
-
-      setTimeout(() => {
-        navigate("/queuestaff/dashboard", { replace: true });
-      }, 100);
-    } else {
-      // Regular staff
-      if (!dept.id || !dept.name || !dept.prefix) {
-        alert(
-          "Invalid department information received. Please contact administrator."
-        );
+      if (!loginData?.success) {
+        alert("Invalid credentials.");
         return;
       }
 
-      const staffInfo = {
-        id: staff.staffId || Date.now(),
-        username: staff.staffUsername || username,
-        department: dept,
-        token: access_token,
-        loginTime: new Date().toISOString(),
-      };
+      const access_token = loginData.access_token || "";
 
-      sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+      let role =
+        loginData.role?.trim().toLowerCase() ||
+        loginData.staff?.role?.roleName?.trim().toLowerCase() ||
+        "";
 
-      setTimeout(() => {
-        navigate("/staff/dashboard", { replace: true });
-      }, 100);
+      if (role.includes("queue") && role.includes("staff")) {
+        role = "queuestaff";
+      }
+
+      sessionStorage.clear();
+      localStorage.clear();
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("role", role);
+      sessionStorage.setItem("userRole", role);
+
+      const staff = loginData.staff || {};
+      const department = staff.department || {};
+
+      const dept = department.departmentId
+        ? {
+            id: parseInt(department.departmentId),
+            name: department.departmentName?.trim() || "",
+            prefix: department.prefix?.trim() || "",
+          }
+        : { id: 0, name: "", prefix: "" };
+
+      if (role === "admin") {
+        sessionStorage.setItem("isAdminLoggedIn", "true");
+        setTimeout(() => {
+          navigate("/admin/dashboard", { replace: true });
+        }, 100);
+      } else if (role === "queuestaff") {
+        const staffInfo = {
+          id: staff.staffId || Date.now(),
+          username: staff.staffUsername || username,
+          firstName: staff.staffFirstname || "",
+          lastName: staff.staffLastname || "",
+          role: "queuestaff",
+          department: dept,
+          token: access_token,
+          loginTime: new Date().toISOString(),
+        };
+        localStorage.setItem("staffId", staff.staffId);
+        localStorage.setItem("staffUsername", staff.staffUsername);
+        localStorage.setItem("staffRole", role);
+        localStorage.setItem("staffDepartment", dept.name);
+        sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+        sessionStorage.setItem("isQueueStaffLoggedIn", "true");
+
+        setTimeout(() => {
+          navigate("/queuestaff/dashboard", { replace: true });
+        }, 100);
+      } else {
+        if (!dept.id || !dept.name || !dept.prefix) {
+          alert(
+            "Invalid department information received. Please contact administrator."
+          );
+          return;
+        }
+
+        const staffInfo = {
+          id: staff.staffId || Date.now(),
+          username: staff.staffUsername || username,
+          department: dept,
+          token: access_token,
+          loginTime: new Date().toISOString(),
+        };
+
+        sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+
+        setTimeout(() => {
+          navigate("/staff/dashboard", { replace: true });
+        }, 100);
+      }
+
+      console.log("🟢 Login successful:", { staff, role, dept, access_token });
+    } catch (error) {
+      console.error("❌ Login error:", error);
+
+      if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+        alert(`Login failed: ${error.graphQLErrors[0].message}`);
+      } else if (error.networkError) {
+        alert("Network error. Please check your connection and try again.");
+      } else {
+        alert("Login failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    console.log("🟢 Login successful:", { staff, role, dept, access_token });
-  } catch (error) {
-    console.error("❌ Login error:", error);
-
-    if (error.graphQLErrors && error.graphQLErrors.length > 0) {
-      alert(`Login failed: ${error.graphQLErrors[0].message}`);
-    } else if (error.networkError) {
-      alert("Network error. Please check your connection and try again.");
-    } else {
-      alert("Login failed. Please try again.");
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
