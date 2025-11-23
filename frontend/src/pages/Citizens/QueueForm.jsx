@@ -21,6 +21,7 @@ import { CREATE_QUEUE } from "../../graphql/mutation";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import SettingsPage from "./SettingsPage";
+import { logoutPreservingRoleData } from "../../utils/logoutHelper";
 
 const QueueForm = ({ onSuccess }) => {
   const navigate = useNavigate();
@@ -376,14 +377,8 @@ const QueueForm = ({ onSuccess }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("queueStaffId");
-    localStorage.removeItem("staffId");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("token");
-    localStorage.removeItem("queueStaffUsername");
-    localStorage.removeItem("staffUsername");
-    localStorage.removeItem("staffInfo");
-    sessionStorage.clear();
+    // Use the logout helper that preserves role-specific data
+    logoutPreservingRoleData();
     navigate("/login");
   };
 

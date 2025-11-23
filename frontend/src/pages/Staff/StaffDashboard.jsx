@@ -23,6 +23,7 @@ import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import QueueForm from "../Citizens/QueueForm";
 import Settingspage from "./Settingspage";
+import { logoutPreservingRoleData } from "../../utils/logoutHelper";
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
@@ -527,8 +528,8 @@ const StaffDashboard = () => {
     if (speechSynthRef.current) {
       speechSynthRef.current.cancel();
     }
-    sessionStorage.clear();
-    localStorage.clear();
+    // Use the logout helper that preserves role-specific data
+    logoutPreservingRoleData();
     navigate("/login", { replace: true });
   };
 

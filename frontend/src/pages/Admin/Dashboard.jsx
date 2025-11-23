@@ -30,6 +30,7 @@ import {
 
 import logo from "/calapelogo.png";
 import Swal from "sweetalert2";
+import { logoutPreservingRoleData } from "../../utils/logoutHelper";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -93,12 +94,10 @@ const AdminDashboard = () => {
     cancelButtonColor: "#d33",
   }).then((result) => {
     if (result.isConfirmed) {
-      
-      sessionStorage.clear();
-      localStorage.clear();
+      // Use the logout helper that preserves role-specific data
+      logoutPreservingRoleData();
       navigate("/login");
 
-      
       Swal.fire({
         icon: "success",
         title: "You have logged out successfully",

@@ -74,8 +74,6 @@ export const UPDATE_STAFF = gql`
   mutation UpdateStaff($updateStaffInput: UpdateStaffInput!) {
     updateStaff(updateStaffInput: $updateStaffInput) {
       staffId
-      staffUsername
-      staffPassword
       staffFirstname
       staffLastname
     }

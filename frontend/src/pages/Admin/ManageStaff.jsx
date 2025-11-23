@@ -38,7 +38,6 @@ const ManageStaff = () => {
   // Check if any data is still loading
   const isLoading = staffLoading || departmentsLoading || rolesLoading;
   
-  // Check if any query has errors
   const hasError = staffError || departmentsError || rolesError;
 
   const [createStaff] = useMutation(CREATE_STAFF, {
@@ -65,7 +64,6 @@ const ManageStaff = () => {
 
   const [updateStaff] = useMutation(UPDATE_STAFF, {
     onCompleted: (data) => {
-      // Update local state immediately
       setStaff(prevStaff => 
         prevStaff.map(member => 
           member.staffId === data.updateStaff.staffId ? data.updateStaff : member
@@ -89,7 +87,6 @@ const ManageStaff = () => {
 
   const [deleteStaff] = useMutation(DELETE_STAFF, {
     onCompleted: (data) => {
-      // Update local state immediately
       setStaff(prevStaff => 
         prevStaff.filter(member => member.staffId !== data.deleteStaff.staffId)
       );

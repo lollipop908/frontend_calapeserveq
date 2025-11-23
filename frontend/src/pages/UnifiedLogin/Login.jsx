@@ -69,6 +69,13 @@ const Login = () => {
         staffInfo: localStorage.getItem("staffInfo")
       } : null;
 
+      console.log("Preserving data for other roles:", {
+        existingAdminData,
+        existingQueueStaffData,
+        existingStaffData,
+        currentRole: role
+      });
+
       // Clear session storage (session-specific)
       sessionStorage.clear();
       
@@ -111,13 +118,12 @@ const Login = () => {
       // Store current session data
       localStorage.setItem("token", access_token);
       localStorage.setItem("role", role);
-      localStorage.setItem("staffInfo", JSON.stringify(staffInfo));
 
       sessionStorage.setItem("userRole", role);
       sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
       sessionStorage.setItem("isLoggedIn", "true");
 
-      // Store role-specific data
+      // Store role-specific data (NEVER overwrite staffInfo for other roles)
       if (role === "admin") {
         sessionStorage.setItem("isAdminLoggedIn", "true");
         localStorage.setItem("isAdminLoggedIn", "true");
@@ -125,17 +131,16 @@ const Login = () => {
         localStorage.setItem("adminStaffUsername", staffInfo.username);
         localStorage.setItem("adminStaffInfo", JSON.stringify(staffInfo));
         sessionStorage.setItem("staffId", staff.staffId || staffInfo.id);
-        // Also store in generic keys for backward compatibility
-        localStorage.setItem("staffId", staff.staffId || staffInfo.id);
-        localStorage.setItem("staffUsername", staffInfo.username);
+        // Don't overwrite staffInfo or staffId/staffUsername - those belong to staff role
       } else if (role === "queuestaff") {
         sessionStorage.setItem("isQueueStaffLoggedIn", "true");
         localStorage.setItem("isQueueStaffLoggedIn", "true");
         localStorage.setItem("queueStaffId", staff.staffId || staffInfo.id);
         localStorage.setItem("queueStaffUsername", staffInfo.username);
         localStorage.setItem("queueStaffInfo", JSON.stringify(staffInfo));
+        // Don't overwrite staffInfo or staffId/staffUsername - those belong to staff role
       } else {
-        // Regular staff
+        // Regular staff - ONLY staff role can use staffInfo and staffId/staffUsername
         sessionStorage.setItem("isStaffLoggedIn", "true");
         localStorage.setItem("isStaffLoggedIn", "true");
         localStorage.setItem("staffId", staff.staffId || staffInfo.id);
@@ -144,6 +149,7 @@ const Login = () => {
       }
 
       // Restore other roles' data so their dashboards still work
+      // This ensures that logging in as one role doesn't lose data for other roles
       if (existingAdminData?.adminStaffId) {
         localStorage.setItem("adminStaffId", existingAdminData.adminStaffId);
         if (existingAdminData.adminStaffUsername) {
@@ -152,6 +158,7 @@ const Login = () => {
         if (existingAdminData.adminStaffInfo) {
           localStorage.setItem("adminStaffInfo", existingAdminData.adminStaffInfo);
         }
+        console.log("Restored admin data:", existingAdminData.adminStaffId);
       }
       
       if (existingQueueStaffData?.queueStaffId) {
@@ -162,6 +169,7 @@ const Login = () => {
         if (existingQueueStaffData.queueStaffInfo) {
           localStorage.setItem("queueStaffInfo", existingQueueStaffData.queueStaffInfo);
         }
+        console.log("Restored queuestaff data:", existingQueueStaffData.queueStaffId);
       }
       
       if (existingStaffData?.staffId && role !== "staff") {
@@ -172,7 +180,17 @@ const Login = () => {
         if (existingStaffData.staffInfo) {
           localStorage.setItem("staffInfo", existingStaffData.staffInfo);
         }
+        console.log("Restored staff data:", existingStaffData.staffId);
       }
+      
+      console.log("Final localStorage state:", {
+        queueStaffId: localStorage.getItem("queueStaffId"),
+        queueStaffUsername: localStorage.getItem("queueStaffUsername"),
+        staffId: localStorage.getItem("staffId"),
+        staffUsername: localStorage.getItem("staffUsername"),
+        adminStaffId: localStorage.getItem("adminStaffId"),
+        adminStaffUsername: localStorage.getItem("adminStaffUsername")
+      });
 
       Swal.fire({
         icon: "success",

@@ -27,37 +27,63 @@ const SettingsPage = ({ onClose }) => {
 
   // Determine staff credentials based on current route ONLY
   // This Settings page is for regular staff, so it should only be accessed from /staff/dashboard
-  // We check the route, not the session role, to ensure we show the correct data for this dashboard
+  // We ONLY use route-specific keys - staffInfo is only valid if it matches staffId
   const getStaffCredentials = () => {
     // Check if we're on staff dashboard route
     if (location.pathname.includes("/staff/dashboard")) {
-      // Try role-specific storage first (preserved across logins)
-      const staffInfoStr = localStorage.getItem("staffInfo");
-      if (staffInfoStr) {
-        try {
-          const parsed = JSON.parse(staffInfoStr);
-          const parsedRole = parsed.role?.toLowerCase().replace(/\s+/g, '');
-          // Only use if it's staff data (not queuestaff or admin)
-          if (parsedRole === "staff" && parsed.id) {
-            return {
-              staffId: parsed.id.toString(),
-              staffUsername: parsed.username || localStorage.getItem("staffUsername")
-            };
-          }
-        } catch (e) {
-          console.error("Error parsing staffInfo:", e);
-        }
-      }
-      
-      // Fallback to role-specific keys (these persist across logins)
+      // ONLY use staff-specific keys (these are preserved across logins)
       const id = localStorage.getItem("staffId");
       const username = localStorage.getItem("staffUsername");
+      const staffInfoStr = localStorage.getItem("staffInfo");
+      
+      console.log("Staff Settings - Reading from localStorage:", {
+        route: location.pathname,
+        staffId: id,
+        staffUsername: username,
+        hasStaffInfo: !!staffInfoStr,
+        allStaffKeys: {
+          staffId: localStorage.getItem("staffId"),
+          staffUsername: localStorage.getItem("staffUsername"),
+          staffInfo: localStorage.getItem("staffInfo")
+        }
+      });
+      
+      // If we have role-specific keys, use them
       if (id) {
+        // If we have the full info object, verify it's staff role and IDs match
+        if (staffInfoStr) {
+          try {
+            const parsed = JSON.parse(staffInfoStr);
+            const parsedRole = parsed.role?.toLowerCase().replace(/\s+/g, '');
+            // Only use if it's staff data (not queuestaff or admin) and IDs match
+            if (parsedRole === "staff" && parsed.id && String(parsed.id) === String(id)) {
+              console.log("Using staffInfo data:", parsed.username);
+              return {
+                staffId: id,
+                staffUsername: parsed.username || username || "Staff User"
+              };
+            } else {
+              console.warn("staffInfo role mismatch:", { parsedRole, expectedRole: "staff", parsedId: parsed.id, staffId: id });
+            }
+          } catch (e) {
+            console.error("Error parsing staffInfo:", e);
+          }
+        }
+        
+        // Use the ID and username keys (these are the source of truth for staff)
+        console.log("Using staffId/staffUsername:", { id, username });
         return { 
           staffId: id, 
           staffUsername: username || "Staff User" 
         };
       }
+      
+      // If no staff-specific keys found, return null/empty
+      console.warn("No staff-specific data found in localStorage for route:", location.pathname);
+      return {
+        staffId: null,
+        staffUsername: null
+      };
     }
     // Default fallback
     return {

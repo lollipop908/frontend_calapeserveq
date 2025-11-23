@@ -27,54 +27,60 @@ const SettingsPage = ({ onClose }) => {
 
   // Determine queue staff credentials based on current route ONLY
   // This Settings page is for queue staff, so it should only be accessed from /queuestaff/dashboard
-  // We check the route, not the session role, to ensure we show the correct data for this dashboard
+  // We ONLY use route-specific keys - never check generic staffInfo which gets overwritten
   const getQueueStaffCredentials = () => {
     // Check if we're on queuestaff dashboard route
     if (location.pathname.includes("/queuestaff/dashboard")) {
-      // Try role-specific storage first (preserved across logins)
-      const queueStaffInfoStr = localStorage.getItem("queueStaffInfo");
-      if (queueStaffInfoStr) {
-        try {
-          const parsed = JSON.parse(queueStaffInfoStr);
-          const parsedRole = parsed.role?.toLowerCase().replace(/\s+/g, '');
-          // Only use if it's queuestaff data
-          if (parsedRole === "queuestaff" && parsed.id) {
-            return {
-              staffId: parsed.id.toString(),
-              staffUsername: parsed.username || localStorage.getItem("queueStaffUsername")
-            };
-          }
-        } catch (e) {
-          console.error("Error parsing queueStaffInfo:", e);
-        }
-      }
-      
-      // Also try generic staffInfo (might be queuestaff)
-      const staffInfoStr = localStorage.getItem("staffInfo");
-      if (staffInfoStr) {
-        try {
-          const parsed = JSON.parse(staffInfoStr);
-          const parsedRole = parsed.role?.toLowerCase().replace(/\s+/g, '');
-          if (parsedRole === "queuestaff" && parsed.id) {
-            return {
-              staffId: parsed.id.toString(),
-              staffUsername: parsed.username || localStorage.getItem("queueStaffUsername")
-            };
-          }
-        } catch (e) {
-          console.error("Error parsing staffInfo:", e);
-        }
-      }
-      
-      // Fallback to queuestaff-specific keys (these persist across logins)
+      // ONLY use queuestaff-specific keys (these are preserved across logins)
       const id = localStorage.getItem("queueStaffId");
       const username = localStorage.getItem("queueStaffUsername");
+      const queueStaffInfoStr = localStorage.getItem("queueStaffInfo");
+      
+      console.log("QueueStaff Settings - Reading from localStorage:", {
+        route: location.pathname,
+        queueStaffId: id,
+        queueStaffUsername: username,
+        hasQueueStaffInfo: !!queueStaffInfoStr,
+        allQueueStaffKeys: {
+          queueStaffId: localStorage.getItem("queueStaffId"),
+          queueStaffUsername: localStorage.getItem("queueStaffUsername"),
+          queueStaffInfo: localStorage.getItem("queueStaffInfo")
+        }
+      });
+      
+      // If we have role-specific keys, use them
       if (id) {
+        // If we have the full info object, prefer username from there
+        if (queueStaffInfoStr) {
+          try {
+            const parsed = JSON.parse(queueStaffInfoStr);
+            const parsedRole = parsed.role?.toLowerCase().replace(/\s+/g, '');
+            if (parsedRole === "queuestaff" && parsed.id && String(parsed.id) === String(id)) {
+              console.log("Using queueStaffInfo data:", parsed.username);
+              return {
+                staffId: id,
+                staffUsername: parsed.username || username || "Queue Staff User"
+              };
+            }
+          } catch (e) {
+            console.error("Error parsing queueStaffInfo:", e);
+          }
+        }
+        
+        // Use the ID and username keys (these are the source of truth for queuestaff)
+        console.log("Using queueStaffId/queueStaffUsername:", { id, username });
         return { 
           staffId: id, 
           staffUsername: username || "Queue Staff User" 
         };
       }
+      
+      // If no queuestaff-specific keys found, return null/empty (don't fallback to staffInfo)
+      console.warn("No queuestaff-specific data found in localStorage for route:", location.pathname);
+      return {
+        staffId: null,
+        staffUsername: null
+      };
     }
     // Default fallback to queuestaff-specific keys
     return {
