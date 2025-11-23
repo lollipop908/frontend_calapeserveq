@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery } from "@apollo/client";
-import { useMemo } from "react";
 import {
   Building2,
   Users,
@@ -18,9 +17,10 @@ import "./styles/QueueForm.css";
 import QueueModal from "./QueueModal";
 import { useNavigate } from "react-router-dom";
 import { GET_DEPARTMENTS, GET_SERVICES, GET_QUEUESTAFF_PROFILE } from "../../graphql/query";
-import { CREATE_QUEUE, UPDATE_QUEUESATFF_PROFILE } from "../../graphql/mutation";
+import { CREATE_QUEUE } from "../../graphql/mutation";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
+import SettingsPage from "./SettingsPage";
 
 const QueueForm = ({ onSuccess }) => {
   const navigate = useNavigate();
@@ -32,14 +32,68 @@ const QueueForm = ({ onSuccess }) => {
   });
   
   const [queueStaffMenuOpen, setQueueStaffMenuOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const staffUsername = localStorage.getItem("staffUsername")
-  const staffId = localStorage.getItem("staffId") || localStorage.getItem("userId");
+  // Get staff info from storage - UPDATED VERSION
+  const staffUsername = localStorage.getItem("queueStaffUsername") || 
+                       localStorage.getItem("staffUsername") || 
+                       "Queue Staff";
 
-  console.log("Retrieved staffId:", staffId);
-  console.log("staffId type:", typeof staffId);
-  console.log("Parsed staffId:", staffId ? parseInt(staffId, 10) : null); // Debug log
+  const staffId = localStorage.getItem("queueStaffId") || 
+                  localStorage.getItem("staffId") || 
+                  localStorage.getItem("userId");
 
+  const token = localStorage.getItem("token");
+
+  // Check authentication on component mount
+  useEffect(() => {
+    console.log("QueueForm auth check - Token:", token, "Staff ID:", staffId);
+    
+    if (!token || !staffId) {
+      console.error("No authentication token or staff ID found in localStorage");
+      // Try to get from sessionStorage as fallback
+      const sessionToken = sessionStorage.getItem("token");
+      const sessionStaffInfo = sessionStorage.getItem("staffInfo");
+      let sessionStaffId = null;
+      
+      if (sessionStaffInfo) {
+        try {
+          const parsedInfo = JSON.parse(sessionStaffInfo);
+          sessionStaffId = parsedInfo.id;
+          console.log("Found staff info in sessionStorage:", parsedInfo);
+        } catch (e) {
+          console.error("Error parsing sessionStorage staffInfo:", e);
+        }
+      }
+      
+      if (!sessionToken || !sessionStaffId) {
+        console.error("No valid session found, redirecting to login");
+        navigate("/login");
+        return;
+      }
+    } else {
+      console.log("Authentication valid, staff username:", staffUsername);
+    }
+  }, [token, staffId, staffUsername, navigate]);
+
+  // Listen for theme changes from Settings page
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+
+    const channel = new BroadcastChannel('theme-updates');
+    channel.onmessage = (event) => {
+      if (event.data.type === 'THEME_CHANGED') {
+        document.documentElement.setAttribute("data-theme", event.data.theme);
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
+
+  // Fetch staff profile - with better error handling
   const {
     data: staffData,
     loading: staffLoading,
@@ -51,66 +105,128 @@ const QueueForm = ({ onSuccess }) => {
     },
     skip: !staffId,
     fetchPolicy: "network-only",
-    onCompleted: (data) => {
-      console.log("Staff query completed:", data);
-    },
     onError: (error) => {
-      console.error("Staff query error:", error);
+      console.error("Staff profile query error:", error);
+      // If query fails, try to use stored data
+      const storedStaffInfo = localStorage.getItem("staffInfo") || 
+                             sessionStorage.getItem("staffInfo");
+      if (storedStaffInfo) {
+        try {
+          const parsedInfo = JSON.parse(storedStaffInfo);
+          console.log("Using stored staff info:", parsedInfo);
+        } catch (e) {
+          console.error("Error parsing stored staff info:", e);
+        }
+      }
+      
+      if (error.message.includes("Unauthorized") || error.message.includes("Authentication")) {
+        console.error("Authentication error, clearing storage and redirecting");
+        localStorage.clear();
+        sessionStorage.clear();
+        navigate("/login");
+      }
     }
   });
 
-  console.log("Staff query result:", { staffData, staffLoading, staffError }); 
+  // Fixed: Properly extract staff info with fallbacks
+  const staffInfo = staffData?.queueStaff || staffData?.staff || staffData?.getQueueStaffProfile || null;
 
-
-  const staffInfo = staffData?.staff || staffData?.getQueueStaffProfile || staffData?.queueStaff || null;
-  
-  console.log("Full staffData response:", staffData); 
-
+  // Fetch departments with better error handling
   const {
     data: departmentsData,
     loading: departmentsLoading,
     error: departmentsError,
+    refetch: refetchDepartments
   } = useQuery(GET_DEPARTMENTS, {
     fetchPolicy: "network-only",
+    onError: (error) => {
+      console.error("Departments query error:", error);
+    }
   });
 
+  // Fetch services with better error handling
   const {
     data: servicesData,
     loading: servicesLoading,
     error: servicesError,
+    refetch: refetchServices
   } = useQuery(GET_SERVICES, {
     fetchPolicy: "network-only",
-    onError: (e) => {
-      console.error("Services query error:", e);
-      if (e?.graphQLErrors?.length)
-        console.error("GQL errors:", e.graphQLErrors);
-      if (e?.networkError) console.error("Network error:", e.networkError);
-    },
+    onError: (error) => {
+      console.error("Services query error:", error);
+    }
   });
 
-  const departmentOptions = useMemo(() => {
-    const direct = Array.isArray(departmentsData?.departments)
-      ? departmentsData.departments
-      : null;
-    if (direct && direct.length) return direct;
-
-    const services = Array.isArray(servicesData?.services)
-      ? servicesData.services
-      : [];
-    const map = new Map();
-    for (const s of services) {
-      if (s?.department?.departmentId && s?.department?.departmentName) {
-        map.set(s.department.departmentId, {
-          departmentId: s.department.departmentId,
-          departmentName: s.department.departmentName,
-        });
+  // Real-time updates listener
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'dataUpdated') {
+        refetchDepartments();
+        refetchServices();
       }
+    };
+
+    const channel = new BroadcastChannel('admin-updates');
+    
+    channel.onmessage = (event) => {
+      if (event.data.type === 'DATA_UPDATED') {
+        refetchDepartments();
+        refetchServices();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      channel.close();
+    };
+  }, [refetchDepartments, refetchServices]);
+
+  // Fixed department options with better data extraction
+  const departmentOptions = useMemo(() => {
+    console.log("Departments data:", departmentsData);
+    console.log("Services data:", servicesData);
+
+    // Try to get departments from different possible response structures
+    let departments = [];
+    
+    // Try departments query first
+    if (departmentsData?.departments) {
+      departments = Array.isArray(departmentsData.departments) 
+        ? departmentsData.departments 
+        : [];
     }
-    return Array.from(map.values());
+    
+    // If no departments found, try to extract from services
+    if (departments.length === 0 && servicesData?.services) {
+      const services = Array.isArray(servicesData.services) ? servicesData.services : [];
+      const departmentMap = new Map();
+      
+      services.forEach((service) => {
+        if (service?.department) {
+          const dept = service.department;
+          if (dept.departmentId && dept.departmentName) {
+            departmentMap.set(dept.departmentId, {
+              departmentId: dept.departmentId,
+              departmentName: dept.departmentName,
+            });
+          }
+        }
+      });
+      
+      departments = Array.from(departmentMap.values());
+    }
+
+    console.log("Processed department options:", departments);
+    return departments;
   }, [departmentsData, servicesData]);
 
-  const [createQueue] = useMutation(CREATE_QUEUE);
-  const [updateStaff] = useMutation(UPDATE_QUEUESATFF_PROFILE);
+  const [createQueue] = useMutation(CREATE_QUEUE, {
+    onError: (error) => {
+      console.error("Create queue mutation error:", error);
+    }
+  });
 
   const [queueNumber, setQueueNumber] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -118,12 +234,14 @@ const QueueForm = ({ onSuccess }) => {
   const [error, setError] = useState("");
   const [filteredServices, setFilteredServices] = useState([]);
 
+  // Fixed service filtering
   useEffect(() => {
     if (servicesData?.services && formData.departmentId) {
-      const filtered = servicesData.services.filter(
+      const services = Array.isArray(servicesData.services) ? servicesData.services : [];
+      const filtered = services.filter(
         (service) =>
-          String(service.department.departmentId) ===
-          String(formData.departmentId)
+          service?.department &&
+          String(service.department.departmentId) === String(formData.departmentId)
       );
       setFilteredServices(filtered);
     } else {
@@ -135,7 +253,7 @@ const QueueForm = ({ onSuccess }) => {
     const { name, value } = e.target;
     const processedValue =
       name === "departmentId" || name === "serviceId"
-        ? parseInt(value, 10)
+        ? value // Keep as string for select values, convert later when needed
         : value;
 
     setFormData((prev) => ({
@@ -170,6 +288,11 @@ const QueueForm = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
+    if (!staffId) {
+      setError("Staff authentication required. Please login again.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -196,6 +319,8 @@ const QueueForm = ({ onSuccess }) => {
         serviceId: Number(formData.serviceId),
         priority: normalizedPriority,
       };
+
+      console.log("Creating queue with input:", createQueueInput);
 
       const { data } = await createQueue({
         variables: { createQueueInput },
@@ -256,14 +381,20 @@ const QueueForm = ({ onSuccess }) => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("queueStaffId");
     localStorage.removeItem("staffId");
     localStorage.removeItem("userId");
     localStorage.removeItem("token");
+    localStorage.removeItem("queueStaffUsername");
+    localStorage.removeItem("staffUsername");
+    localStorage.removeItem("staffInfo");
+    sessionStorage.clear();
     navigate("/login");
   };
 
-  const handleManageAccount = () => {
-    navigate("/staff/profile");
+  const handleManageSettings = () => {
+    setQueueStaffMenuOpen(false);
+    setShowSettings(true);
   };
 
   const getStepTitle = () => {
@@ -298,30 +429,27 @@ const QueueForm = ({ onSuccess }) => {
 
   const getSelectedDepartmentName = () => {
     const dept = departmentOptions?.find(
-      (d) => d.departmentId === formData.departmentId
+      (d) => String(d.departmentId) === String(formData.departmentId)
     );
-    return dept?.departmentName || "";
+    return dept?.departmentName || "Not selected";
   };
 
   const getSelectedServiceName = () => {
     const service = filteredServices.find(
-      (s) => s.serviceId === formData.serviceId
+      (s) => String(s.serviceId) === String(formData.serviceId)
     );
-    return service?.serviceName || "";
+    return service?.serviceName || "Not selected";
   };
 
-  const hasDeptArray = Array.isArray(departmentsData?.departments);
-  const hasServicesArray = Array.isArray(servicesData?.services);
-  
-  // Show loading state while fetching staff data
-  if (staffLoading) {
+  // Show loading state while fetching data
+  if (staffLoading || departmentsLoading || servicesLoading) {
     return (
       <div className="queue-page-wrapper">
         <Header />
         <div className="queue-home-container">
-          <div className="queue-loading-message">
-            <Loader2 className="queue-spinner" size={24} />
-            <p>Loading staff information...</p>
+          <div className="queue-loading-container">
+            <Loader2 className="queue-spinner" size={32} />
+            <p>Loading queue system...</p>
           </div>
         </div>
         <Footer />
@@ -329,22 +457,22 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
-  // Show error if staff data fails to load
-  if (staffError) {
-    console.error("Staff query error details:", staffError);
+  // Show error if authentication fails
+  if (!token || !staffId) {
     return (
       <div className="queue-page-wrapper">
         <Header />
         <div className="queue-home-container">
-          <div className="queue-error-message">
-            <p>Error loading staff information: {staffError.message}</p>
-            <p>Staff ID used: {staffId}</p>
-            <button 
-              className="queue-retry-btn" 
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </button>
+          <div className="queue-error-container">
+            <div className="queue-error-message">
+              <p>Authentication required. Please login.</p>
+              <button 
+                className="queue-retry-btn" 
+                onClick={() => navigate("/login")}
+              >
+                Go to Login
+              </button>
+            </div>
           </div>
         </div>
         <Footer />
@@ -352,49 +480,42 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
-  if (
-    !departmentsLoading &&
-    !servicesLoading &&
-    !hasDeptArray &&
-    !hasServicesArray
-  ) {
+  // Show error if data fails to load
+  if (staffError || departmentsError || servicesError) {
+    const errorMessage = staffError?.message || departmentsError?.message || servicesError?.message;
+    
     return (
       <div className="queue-page-wrapper">
         <Header />
         <div className="queue-home-container">
-          <div className="queue-error-message">
-            <p>Error loading data. Please refresh the page.</p>
-            <p>
-              {(departmentsError?.graphQLErrors?.[0]?.message ||
-                departmentsError?.message ||
-                servicesError?.graphQLErrors?.[0]?.message ||
-                servicesError?.message) ??
-                ""}
-            </p>
+          <div className="queue-error-container">
+            <div className="queue-error-message">
+              <p>Error loading data: {errorMessage}</p>
+              <button 
+                className="queue-retry-btn" 
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </button>
+              <button 
+                className="queue-logout-btn" 
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
         <Footer />
       </div>
     );
   }
-
-
-  const staffDisplayName = staffInfo
-    ? `${staffInfo.staffFirstname || staffInfo.firstName || ''} ${staffInfo.staffLastname || staffInfo.lastName || ''}`.trim()
-    : "Loading...";
-
-  console.log("Staff info for display:", { 
-    staffUsername,
-    // staffInfo, 
-    // staffDisplayName,
-    // fullStaffData: staffData 
-  }); 
 
   return (
     <div className="queue-page-wrapper">
       <Header />
       <div className="queue-home-container">
-        {}
+        {/* Staff Menu */}
         <div className="queue-staff-menu-container">
           <button 
             className="queue-staff-menu-toggle"
@@ -404,17 +525,17 @@ const QueueForm = ({ onSuccess }) => {
               <User size={20} />
             </div>
             <div className="queue-staff-info">
-              <span className="queue-staff-name">{staffUsername}</span>
-              <span className="queue-staff-role">staff</span>
+              <span className="queue-staff-name">{staffUsername || "Queue Staff"}</span>
+              <span className="queue-staff-role">queue staff</span>
             </div>
             <ChevronDown size={18} className={`queue-staff-chevron ${queueStaffMenuOpen ? 'queue-staff-chevron-open' : ''}`} />
           </button>
           
           {queueStaffMenuOpen && (
             <div className="queue-staff-menu-dropdown">
-              <button className="queue-staff-menu-item" onClick={handleManageAccount}>
+              <button className="queue-staff-menu-item" onClick={handleManageSettings}>
                 <Settings size={18} />
-                <span>Manage Account</span>
+                <span>Manage Settings</span>
               </button>
               <div className="queue-staff-menu-divider"></div>
               <button className="queue-staff-menu-item queue-staff-menu-logout" onClick={handleLogout}>
@@ -502,6 +623,9 @@ const QueueForm = ({ onSuccess }) => {
                           </select>
                           <ChevronDown className="queue-select-arrow" size={14} />
                         </div>
+                        {departmentOptions?.length === 0 && !departmentsLoading && (
+                          <p className="queue-no-data-message">No departments available</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -547,6 +671,9 @@ const QueueForm = ({ onSuccess }) => {
                           </select>
                           <ChevronDown className="queue-select-arrow" size={14} />
                         </div>
+                        {filteredServices.length === 0 && formData.departmentId && !servicesLoading && (
+                          <p className="queue-no-data-message">No services available for this department</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -636,6 +763,7 @@ const QueueForm = ({ onSuccess }) => {
                       type="button" 
                       className="queue-reset-btn" 
                       onClick={resetForm}
+                      disabled={isSubmitting}
                     >
                       <RotateCcw size={16} />
                       Reset
@@ -645,7 +773,12 @@ const QueueForm = ({ onSuccess }) => {
 
                 <div className="queue-actions-right">
                   {currentStep < 4 ? (
-                    <button type="button" className="queue-next-btn" onClick={handleNext}>
+                    <button 
+                      type="button" 
+                      className="queue-next-btn" 
+                      onClick={handleNext}
+                      disabled={isSubmitting}
+                    >
                       Next
                       <ArrowRight size={16} />
                     </button>
@@ -689,6 +822,12 @@ const QueueForm = ({ onSuccess }) => {
           )}
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsPage onClose={() => setShowSettings(false)} />
+      )}
+
       <Footer />
     </div>
   );

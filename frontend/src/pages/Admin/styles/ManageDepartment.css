@@ -1,68 +1,77 @@
 /* Main Container */
 .departments-content {
-  padding: 32px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f8fafc 100%);
+  padding: 24px;
+  background: #f8fafc;
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* Header Section */
-.departments-header {
+/* Loading State */
+.loading-overlay {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 36px;
-  padding: 0 8px;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #718096;
 }
 
-.header-content h2 {
-  color: #0c4a6e;
-  font-size: 36px;
-  font-weight: 800;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid #0c4a6e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
-.header-subtitle {
-  color: #64748b;
-  font-size: 16px;
-  margin: 0;
-  font-weight: 500;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.add-department-btn {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+/* Error Message */
+.error-message {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.875rem;
+  margin: 2rem;
+}
+
+/* Add Department Floating Button */
+.add-department-floating-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #0c4a6e;
   color: white;
   border: none;
-  padding: 16px 32px;
-  border-radius: 14px;
-  font-size: 15px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font-size: 24px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.3);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(12, 74, 110, 0.3);
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  z-index: 100;
 }
 
-.add-department-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 30px rgba(2, 132, 199, 0.5);
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+.add-department-floating-btn:hover {
+  background: #0369a1;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(12, 74, 110, 0.4);
 }
 
-.add-department-btn .btn-icon {
-  font-size: 14px;
-  transition: transform 0.3s ease;
-}
-
-.add-department-btn:hover .btn-icon {
-  transform: rotate(90deg);
+.add-department-floating-btn .btn-icon {
+  font-size: 20px;
 }
 
 /* Modal Overlay */
@@ -73,7 +82,7 @@
   right: 0;
   bottom: 0;
   background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -89,40 +98,38 @@
 /* Modal */
 .department-form-modal {
   background: white;
-  padding: 40px;
-  border-radius: 24px;
+  padding: 32px;
+  border-radius: 12px;
   width: 90%;
-  max-width: 550px;
+  max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
   from { 
     opacity: 0;
-    transform: translateY(-30px) scale(0.95);
+    transform: translateY(-20px);
   }
   to { 
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 .modal-header {
-  position: relative; /* needed if using absolute positioning for the button */
   display: flex;
-  justify-content: space-between; /* title on left, button on right */
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .modal-header h3 {
   color: #0c4a6e;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   margin: 0;
   flex: 1;
 }
@@ -130,58 +137,52 @@
 .close-modal-btn {
   background: #f1f5f9;
   border: none;
-  font-size: 20px;
+  font-size: 18px;
   color: #64748b;
   cursor: pointer;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 8px;
+  border-radius: 6px;
   transition: all 0.2s;
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 0;
-  right: 0;
+  width: 32px;
+  height: 32px;
 }
 
 .close-modal-btn:hover {
   background: #e2e8f0;
-  color: #334155;
-  transform: rotate(90deg);
 }
 
-
+/* Form Elements */
 .form-group {
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 10px;
-  color: #1e293b;
-  font-weight: 600;
-  font-size: 15px;
+  margin-bottom: 6px;
+  color: #374151;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 16px 20px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 15px;
-  transition: all 0.3s ease;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
   box-sizing: border-box;
-  background: #f8fafc;
-  color: #1e293b;
+  background: white;
+  color: #374151;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #0284c7;
-  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
-  background: white;
+  border-color: #0c4a6e;
+  box-shadow: 0 0 0 2px rgba(12, 74, 110, 0.1);
 }
 
 .readonly-input {
@@ -203,58 +204,54 @@
 /* Form Actions */
 .form-actions {
   display: flex;
-  gap: 14px;
-  margin-top: 36px;
+  gap: 12px;
+  margin-top: 24px;
   justify-content: flex-end;
 }
 
 .cancel-btn,
 .submit-btn {
-  padding: 14px 32px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .cancel-btn {
-  background: #f1f5f9;
-  color: #475569;
-  border: 2px solid #e2e8f0;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .cancel-btn:hover {
-  background: #e2e8f0;
-  transform: translateY(-2px);
-  border-color: #cbd5e1;
+  background: #e5e7eb;
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  background: #0c4a6e;
   color: white;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
 }
 
 .submit-btn:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(2, 132, 199, 0.5);
+  background: #0369a1;
 }
 
 /* Table Container */
 .departments-table-container {
   background: white;
-  border-radius: 20px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .table-header {
-  padding: 28px 32px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 2px solid #e2e8f0;
+  padding: 20px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .table-title {
@@ -265,19 +262,18 @@
 
 .table-title h3 {
   color: #0c4a6e;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   margin: 0;
 }
 
 .department-count {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  background: #0c4a6e;
   color: white;
-  padding: 8px 20px;
-  border-radius: 24px;
-  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
 }
 
 /* Table */
@@ -287,39 +283,37 @@
 }
 
 .departments-table thead {
-  background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+  background: #0c4a6e;
 }
 
 .departments-table th {
-  padding: 20px 32px;
+  padding: 16px 24px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
   color: white;
 }
 
 .th-content {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .th-icon {
-  font-size: 16px;
-  opacity: 0.95;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .table-row {
   border-bottom: 1px solid #f1f5f9;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .table-row:hover {
-  background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 100%);
-  transform: scale(1.005);
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.1);
+  background: #f8fafc;
 }
 
 .table-row:last-child {
@@ -328,44 +322,43 @@
 
 /* Department Cell */
 .department-name-cell {
-  padding: 24px 32px;
+  padding: 16px 24px;
 }
 
 .department-info {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
 }
 
 .department-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #0c4a6e;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 700;
-  font-size: 20px;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+  font-weight: 600;
+  font-size: 16px;
 }
 
 .department-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
+/* Updated Department Name Font Size - Same as Staff Name */
 .department-name {
-  font-size: 16px;
+  font-size: 14px!important; /* Changed to match staff name font size */
   font-weight: 600;
   color: #0c4a6e;
 }
 
 .department-code {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -373,161 +366,127 @@
 
 /* Actions Cell */
 .actions-cell {
-  padding: 24px 32px;
+  padding: 16px 24px;
 }
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .edit-btn,
 .delete-btn {
-  padding: 11px 20px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .edit-btn {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  background: #0c4a6e;
   color: white;
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.25);
 }
 
 .edit-btn:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+  background: #0369a1;
 }
 
 .delete-btn {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  background: #dc2626;
   color: white;
-  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.25);
 }
 
 .delete-btn:hover {
-  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+  background: #b91c1c;
 }
 
 .edit-btn .btn-icon,
 .delete-btn .btn-icon {
-  font-size: 13px;
-  transition: transform 0.2s ease;
-}
-
-.edit-btn:hover .btn-icon,
-.delete-btn:hover .btn-icon {
-  transform: scale(1.15);
+  font-size: 11px;
 }
 
 /* Empty State */
 .empty-state {
-  padding: 80px 40px;
+  padding: 60px 24px;
   text-align: center;
   color: #64748b;
 }
 
 .empty-icon-wrapper {
   display: inline-flex;
-  padding: 24px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 20px;
-  margin-bottom: 24px;
+  padding: 20px;
+  background: #f0f9ff;
+  border-radius: 12px;
+  margin-bottom: 20px;
 }
 
 .empty-icon {
-  font-size: 56px;
-  color: #0284c7;
+  font-size: 40px;
+  color: #0c4a6e;
   opacity: 0.7;
 }
 
 .empty-state h3 {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: #0c4a6e;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
 }
 
 .empty-state p {
-  font-size: 16px;
-  margin: 0 0 32px 0;
+  font-size: 14px;
+  margin: 0 0 24px 0;
   color: #64748b;
 }
 
 .empty-state-btn {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  background: #0c4a6e;
   color: white;
   border: none;
-  padding: 16px 32px;
-  border-radius: 12px;
-  font-size: 15px;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.3);
+  gap: 8px;
 }
 
 .empty-state-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 30px rgba(2, 132, 199, 0.5);
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  background: #0369a1;
 }
 
 .empty-state-btn .btn-icon {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .departments-content {
-    padding: 20px;
-  }
-  
-  .departments-header {
-    flex-direction: column;
-    gap: 24px;
-    align-items: stretch;
-  }
-  
-  .header-content {
-    text-align: center;
-  }
-  
-  .header-content h2 {
-    font-size: 28px;
-  }
-  
-  .add-department-btn {
-    width: 100%;
-    justify-content: center;
+    padding: 16px;
   }
   
   .department-form-modal {
-    padding: 28px;
-    margin: 20px;
-    border-radius: 20px;
+    padding: 24px;
+    margin: 16px;
+    border-radius: 8px;
   }
   
   .table-header {
-    padding: 20px 24px;
+    padding: 16px 20px;
   }
   
   .table-title {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     align-items: flex-start;
   }
   
@@ -542,12 +501,12 @@
   .departments-table th,
   .department-name-cell,
   .actions-cell {
-    padding: 16px 20px;
+    padding: 12px 16px;
   }
   
   .form-actions {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
   
   .cancel-btn,
@@ -556,18 +515,18 @@
   }
   
   .department-info {
-    gap: 14px;
+    gap: 10px;
   }
   
   .department-avatar {
-    width: 44px;
-    height: 44px;
-    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
   
   .actions {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   
   .edit-btn,
@@ -577,25 +536,106 @@
   }
   
   .empty-state {
-    padding: 60px 24px;
+    padding: 40px 16px;
+  }
+  
+  .add-department-floating-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .add-department-floating-btn .btn-icon {
+    font-size: 18px;
   }
 }
 
 /* Scrollbar Styling */
 .department-form-modal::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .department-form-modal::-webkit-scrollbar-track {
   background: #f1f5f9;
-  border-radius: 10px;
 }
 
 .department-form-modal::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 10px;
+  border-radius: 3px;
 }
 
 .department-form-modal::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+/* Add these styles to your existing CSS */
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.processing-row {
+  opacity: 0.7;
+  background-color: #f8f9fa;
+}
+
+.processing-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+  font-size: 0.85em;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+.processing-indicator .spinner-small {
+  margin-right: 6px;
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submit-btn:disabled {
+  background-color: #95a5a6;
+}
+
+.edit-btn:disabled,
+.delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-department-floating-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.add-department-floating-btn:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure the table rows with processing state are visually distinct */
+.table-row.processing-row .department-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }

@@ -22,7 +22,6 @@ const ManageStaff = () => {
   const [staff, setStaff] = useState([]);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
-  const [selectedRole, setSelectedRole] = useState("");
   const [newStaff, setNewStaff] = useState({
     firstName: "",
     lastName: "",
@@ -31,14 +30,22 @@ const ManageStaff = () => {
     roleId: "",
   });
 
-  const { data: staffData, refetch: refetchStaff } = useQuery(GET_ALL_STAFF);
-  const { data: departmentsData } = useQuery(GET_DEPARTMENTS);
-  const { data: rolesData } = useQuery(GET_ROLES);
+  // Add loading and error states for all queries
+  const { data: staffData, loading: staffLoading, error: staffError, refetch: refetchStaff } = useQuery(GET_ALL_STAFF);
+  const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS);
+  const { data: rolesData, loading: rolesLoading, error: rolesError } = useQuery(GET_ROLES);
+
+  // Check if any data is still loading
+  const isLoading = staffLoading || departmentsLoading || rolesLoading;
+  
+  // Check if any query has errors
+  const hasError = staffError || departmentsError || rolesError;
 
   const [createStaff] = useMutation(CREATE_STAFF, {
     onCompleted: (data) => {
       console.log("Staff created:", data);
-      refetchStaff();
+      // Update local state immediately
+      setStaff(prevStaff => [...prevStaff, data.createStaff]);
       Swal.fire({
         icon: "success",
         title: "Staff member created!",
@@ -48,28 +55,66 @@ const ManageStaff = () => {
     },
     onError: (error) => {
       console.error("Create staff error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.message || "Failed to create staff member!",
+      });
     },
   });
 
   const [updateStaff] = useMutation(UPDATE_STAFF, {
-    onCompleted: () => {
-      refetchStaff();
+    onCompleted: (data) => {
+      // Update local state immediately
+      setStaff(prevStaff => 
+        prevStaff.map(member => 
+          member.staffId === data.updateStaff.staffId ? data.updateStaff : member
+        )
+      );
+      Swal.fire({
+        icon: "success",
+        title: "Staff member updated!",
+        text: "Staff member updated successfully!",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to update staff member!",
+      });
     },
   });
 
   const [deleteStaff] = useMutation(DELETE_STAFF, {
-    onCompleted: () => {
-      refetchStaff();
+    onCompleted: (data) => {
+      // Update local state immediately
+      setStaff(prevStaff => 
+        prevStaff.filter(member => member.staffId !== data.deleteStaff.staffId)
+      );
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "The staff member has been successfully deleted.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to delete staff member!",
+      });
     },
   });
 
- useEffect(() => {
-  if (staffData && staffData.staffs) {
-    setStaff(staffData.staffs);
-  }
-}, [staffData]);;
+  useEffect(() => {
+    if (staffData && staffData.staffs) {
+      setStaff(staffData.staffs);
+    }
+  }, [staffData]);
 
-  
   const filteredRoles =
     rolesData?.roles?.filter(
       (role) => role.roleName.toLowerCase() !== "admin"
@@ -89,53 +134,26 @@ const ManageStaff = () => {
             },
           },
         });
-        Swal.fire({
-          icon: "success",
-          title: "Staff member updated!",
-          text: "Staff member updated successfully!",
-          confirmButtonColor: "#3085d6",
-        });
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong!",
-          footer: '<a href="#">Why do I have this issue?</a>',
-        });
+        console.error("Update error:", error);
       }
       setEditingStaff(null);
     } else {
-     try {
-  const { data } = await createStaff({
-    variables: {
-      createStaffInput: {
-        staffFirstname: newStaff.firstName,
-        staffLastname: newStaff.lastName,
-        staffUsername: newStaff.username,
-        roleId: parseInt(newStaff.roleId),
-        departmentId: parseInt(newStaff.departmentId),
-      },
-    },
-  });
-
-  console.log("Staff created:", data);
-
-  refetchStaff();
-
-  Swal.fire({
-    icon: "success",
-    title: "Staff member created!",
-    text: "The new staff record was added successfully. Temporary password has been sent to their email.",
-    confirmButtonColor: "#3085d6",
-  });
-} catch (error) {
-  Swal.fire({
-    icon: "error",
-    title: "Oops...",
-    text: error.message || "Something went wrong!",
-    footer: '<a href="#">Why do I have this issue?</a>',
-  });
-}
+      try {
+        await createStaff({
+          variables: {
+            createStaffInput: {
+              staffFirstname: newStaff.firstName,
+              staffLastname: newStaff.lastName,
+              staffUsername: newStaff.username,
+              roleId: parseInt(newStaff.roleId),
+              departmentId: parseInt(newStaff.departmentId),
+            },
+          },
+        });
+      } catch (error) {
+        console.error("Create error:", error);
+      }
     }
 
     setNewStaff({
@@ -155,7 +173,7 @@ const ManageStaff = () => {
       lastName: staffMember.staffLastname || "",
       username: staffMember.staffUsername,
       departmentId: staffMember.department?.departmentId?.toString() || "",
-      roleId: "",
+      roleId: staffMember.role?.roleId?.toString() || "",
     });
     setShowStaffForm(true);
   };
@@ -175,22 +193,8 @@ const ManageStaff = () => {
     if (result.isConfirmed) {
       try {
         await deleteStaff({ variables: { staffId: parseInt(staffId) } });
-        await refetchStaff();
-
-        setStaff(staff.filter((member) => member.staffId !== Number(staffId)));
-
-        Swal.fire({
-          icon: "success",
-          title: "Deleted!",
-          text: "The staff member has been successfully deleted.",
-          confirmButtonColor: "#3085d6",
-        });
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong while deleting the staff member!",
-        });
+        console.error("Delete error:", error);
       }
     }
   };
@@ -213,21 +217,147 @@ const ManageStaff = () => {
     return `${firstName} ${lastName}`.trim() || member.staffUsername;
   };
 
+  // Loading State - Show loading for ALL queries
+  if (isLoading) {
+    return (
+      <div className="staff-content">
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Loading staff data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error State - Show error if ANY query fails
+  if (hasError) {
+    const errorMessage = staffError?.message || departmentsError?.message || rolesError?.message || "Unknown error occurred";
+    return (
+      <div className="staff-content">
+        <div className="error-message">
+          Error loading staff data: {errorMessage}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="staff-content">
-      <div className="staff-header">
-        <div className="header-content">
-          <h2>Staff Management</h2>
-          <p className="header-subtitle">
-            Manage staff members and their roles
-          </p>
+      <div className="staff-table-container">
+        <div className="table-header">
+          <div className="table-title">
+            <h3>All Staff Members</h3>
+            <span className="staff-count">{staff.length} Total</span>
+          </div>
         </div>
+
+        <div className="staff-table">
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <div className="th-content">
+                    <HiUser className="th-icon" />
+                    Full Name
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
+                    <FaUserFriends className="th-icon" />
+                    Department
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
+                    <IoMdSettings className="th-icon" />
+                    Role
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
+                    <IoMdSettings className="th-icon" />
+                    Actions
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {staff.map((member) => (
+                <tr key={member.staffId} className="table-row">
+                  <td className="staff-name-cell">
+                    <div className="staff-info">
+                      <div className="staff-avatar">
+                        {(member.staffFirstname || member.staffUsername)
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+                      <div className="staff-details">
+                        <span className="staff-name">
+                          {getStaffFullName(member)}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="department-cell">
+                    <span className="department-badge">
+                      {member.department?.departmentName || "N/A"}
+                    </span>
+                  </td>
+                  <td className="role-cell">
+                    <span className="role-badge">
+                      {member.role?.roleName || "N/A"}
+                    </span>
+                  </td>
+                  <td className="actions-cell">
+                    <div className="actions">
+                      <button
+                        onClick={() => handleEditStaff(member)}
+                        className="edit-btn"
+                        title="Edit Staff Info"
+                      >
+                        <FaEdit className="btn-icon" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteStaff(member.staffId)}
+                        className="delete-btn"
+                        title="Delete Staff"
+                      >
+                        <FaTrash className="btn-icon" />
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {staff.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon-wrapper">
+                <FaUserFriends className="empty-icon" />
+              </div>
+              <h3>No Staff Members Yet</h3>
+              <p>Start building your team by adding staff members</p>
+              <button
+                onClick={() => setShowStaffForm(true)}
+                className="empty-state-btn"
+              >
+                <FaPlus className="btn-icon" />
+                Add First Staff Member
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Add Staff Floating Button */}
         <button
           onClick={() => setShowStaffForm(true)}
-          className="add-staff-btn"
+          className="add-staff-floating-btn"
+          title="Add Staff"
         >
           <FaPlus className="btn-icon" />
-          Add Staff
         </button>
       </div>
 
@@ -347,104 +477,6 @@ const ManageStaff = () => {
           </div>
         </div>
       )}
-
-      <div className="staff-table-container">
-        <div className="table-header">
-          <div className="table-title">
-            <h3>All Staff Members</h3>
-            <span className="staff-count">{staff.length} Total</span>
-          </div>
-        </div>
-
-        <div className="staff-table">
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  <div className="th-content">
-                    <HiUser className="th-icon" />
-                    Full Name
-                  </div>
-                </th>
-                <th>
-                  <div className="th-content">
-                    <FaUserFriends className="th-icon" />
-                    Department
-                  </div>
-                </th>
-                <th>
-                  <div className="th-content">
-                    <IoMdSettings className="th-icon" />
-                    Actions
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((member) => (
-                <tr key={member.staffId} className="table-row">
-                  <td className="staff-name-cell">
-                    <div className="staff-info">
-                      <div className="staff-avatar">
-                        {(member.staffFirstname || member.staffUsername)
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-                      <div className="staff-details">
-                        <span className="staff-name">
-                          {getStaffFullName(member)}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="department-cell">
-                    <span className="department-badge">
-                      {member.department?.departmentName || "N/A"}
-                    </span>
-                  </td>
-                  <td className="actions-cell">
-                    <div className="actions">
-                      <button
-                        onClick={() => handleEditStaff(member)}
-                        className="edit-btn"
-                        title="Edit Staff Info"
-                      >
-                        <FaEdit className="btn-icon" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStaff(member.staffId)}
-                        className="delete-btn"
-                        title="Delete Staff"
-                      >
-                        <FaTrash className="btn-icon" />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {staff.length === 0 && (
-            <div className="empty-state">
-              <div className="empty-icon-wrapper">
-                <FaUserFriends className="empty-icon" />
-              </div>
-              <h3>No Staff Members Yet</h3>
-              <p>Start building your team by adding staff members</p>
-              <button
-                onClick={() => setShowStaffForm(true)}
-                className="empty-state-btn"
-              >
-                <FaPlus className="btn-icon" />
-                Add First Staff Member
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };

@@ -49,21 +49,61 @@ const Login = () => {
 
       if (role.includes("queue") && role.includes("staff")) role = "queuestaff";
 
+      // CLEAR ALL STORAGE FIRST
       sessionStorage.clear();
       localStorage.clear();
-      localStorage.setItem("token", access_token);
-      localStorage.setItem("role", role);
-      sessionStorage.setItem("userRole", role);
 
+      // STORE CONSISTENT DATA IN BOTH LOCALSTORAGE AND SESSIONSTORAGE
       const staff = loginData.staff || {};
       const department = staff.department || {};
-      const dept = department.departmentId
-        ? {
-            id: parseInt(department.departmentId),
-            name: department.departmentName?.trim() || "",
-            prefix: department.prefix?.trim() || "",
-          }
-        : { id: 0, name: "", prefix: "" };
+      
+      // Create consistent staff info object
+      const staffInfo = {
+        id: staff.staffId || Date.now(),
+        username: staff.staffUsername || username,
+        firstName: staff.staffFirstname || "",
+        lastName: staff.staffLastname || "",
+        role: role,
+        department: {
+          id: parseInt(department.departmentId) || 0,
+          name: department.departmentName?.trim() || "",
+          prefix: department.prefix?.trim() || ""
+        },
+        token: access_token,
+        loginTime: new Date().toISOString(),
+      };
+
+      console.log("Storing staff info:", staffInfo);
+
+      // STORE IN LOCALSTORAGE (PERSISTENT)
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("role", role);
+      localStorage.setItem("staffId", staff.staffId || staffInfo.id);
+      localStorage.setItem("staffUsername", staffInfo.username);
+      localStorage.setItem("staffRole", role);
+      localStorage.setItem("staffDepartment", staffInfo.department.name);
+      localStorage.setItem("staffDepartmentId", staffInfo.department.id.toString());
+      localStorage.setItem("staffDepartmentPrefix", staffInfo.department.prefix);
+      localStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+
+      // STORE IN SESSIONSTORAGE (SESSION ONLY)
+      sessionStorage.setItem("userRole", role);
+      sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
+      sessionStorage.setItem("isLoggedIn", "true");
+
+      // Role-specific storage
+      if (role === "admin") {
+        sessionStorage.setItem("isAdminLoggedIn", "true");
+        localStorage.setItem("isAdminLoggedIn", "true");
+      } else if (role === "queuestaff") {
+        sessionStorage.setItem("isQueueStaffLoggedIn", "true");
+        localStorage.setItem("isQueueStaffLoggedIn", "true");
+        localStorage.setItem("queueStaffId", staff.staffId || staffInfo.id);
+        localStorage.setItem("queueStaffUsername", staffInfo.username);
+      } else {
+        sessionStorage.setItem("isStaffLoggedIn", "true");
+        localStorage.setItem("isStaffLoggedIn", "true");
+      }
 
       Swal.fire({
         icon: "success",
@@ -76,44 +116,10 @@ const Login = () => {
 
       setTimeout(() => {
         if (role === "admin") {
-          sessionStorage.setItem("isAdminLoggedIn", "true");
           navigate("/admin/dashboard", { replace: true });
         } else if (role === "queuestaff") {
-          const staffInfo = {
-            id: staff.staffId || Date.now(),
-            username: staff.staffUsername || username,
-            firstName: staff.staffFirstname || "",
-            lastName: staff.staffLastname || "",
-            role: "queuestaff",
-            department: dept,
-            token: access_token,
-            loginTime: new Date().toISOString(),
-          };
-          localStorage.setItem("staffId", staff.staffId);
-          localStorage.setItem("staffUsername", staff.staffUsername);
-          localStorage.setItem("staffRole", role);
-          localStorage.setItem("staffDepartment", dept.name);
-          sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
-          sessionStorage.setItem("isQueueStaffLoggedIn", "true");
           navigate("/queuestaff/dashboard", { replace: true });
         } else {
-          if (!dept.id || !dept.name || !dept.prefix) {
-            Swal.fire({
-              icon: "error",
-              title: "Invalid department information",
-              text: "Please contact administrator.",
-              confirmButtonColor: "#3085d6",
-            });
-            return;
-          }
-          const staffInfo = {
-            id: staff.staffId || Date.now(),
-            username: staff.staffUsername || username,
-            department: dept,
-            token: access_token,
-            loginTime: new Date().toISOString(),
-          };
-          sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
           navigate("/staff/dashboard", { replace: true });
         }
       }, 1500);
@@ -210,7 +216,7 @@ const Login = () => {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
-                  {}
+                  {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
             </div>

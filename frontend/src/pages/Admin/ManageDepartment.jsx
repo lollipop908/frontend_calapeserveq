@@ -12,36 +12,148 @@ import { IoMdSettings } from "react-icons/io";
 import { HiOfficeBuilding } from "react-icons/hi";
 import Swal from "sweetalert2";
 
-const ManageDepartment = ({ departments, setDepartments }) => {
+const ManageDepartment = ({ departments: propDepartments, setDepartments: propSetDepartments }) => {
   const [showDepartmentForm, setShowDepartmentForm] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [newDepartment, setNewDepartment] = useState({
     name: "",
     prefix: "",
   });
+  const [deletingDepartmentId, setDeletingDepartmentId] = useState(null);
+  const [updatingDepartmentId, setUpdatingDepartmentId] = useState(null);
 
-  const { data, refetch } = useQuery(GET_DEPARTMENTS, { errorPolicy: 'all' });
+  // Check if we're using props or local state
+  const isUsingProps = propDepartments !== undefined && propSetDepartments !== undefined;
+  
+  // Local state for departments if not using props
+  const [localDepartments, setLocalDepartments] = useState([]);
+  
+  // Use either props or local state
+  const departments = isUsingProps ? propDepartments : localDepartments;
+  const setDepartments = isUsingProps ? propSetDepartments : setLocalDepartments;
 
-  const [updateDepartment] = useMutation(UPDATE_DEPARTMENT, {
-    onCompleted: () => {
-      refetch();
+  // Add proper loading and error states
+  const { data, loading, error, refetch } = useQuery(GET_DEPARTMENTS, { 
+    errorPolicy: 'all',
+    fetchPolicy: "network-first" // This ensures we always get fresh data
+  });
+
+  console.log("Department Query - Loading:", loading, "Error:", error, "Data:", data);
+
+  const [updateDepartment, { loading: updating }] = useMutation(UPDATE_DEPARTMENT, {
+    refetchQueries: [{ query: GET_DEPARTMENTS }],
+    optimisticResponse: {
+      __typename: "Mutation",
+      updateDepartment: {
+        __typename: "Department",
+        departmentId: editingDepartment?.departmentId,
+        departmentName: newDepartment.name,
+        prefix: newDepartment.prefix,
+      },
+    },
+    onCompleted: (data) => {
+      const updatedDept = data?.updateDepartment;
+      if (updatedDept) {
+        setDepartments(prevDepartments => 
+          prevDepartments.map(dept => 
+            dept.departmentId === editingDepartment.departmentId
+              ? { ...updatedDept, departmentId: editingDepartment.departmentId }
+              : dept
+          )
+        );
+      }
+      setUpdatingDepartmentId(null);
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: "Department updated successfully.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      console.error("Update department error:", error);
+      setUpdatingDepartmentId(null);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to update department!",
+      });
     },
   });
 
-  const [deleteDepartment] = useMutation(DELETE_DEPARTMENT, {
-    onCompleted: () => {
-      refetch();
+  const [deleteDepartment, { loading: deleting }] = useMutation(DELETE_DEPARTMENT, {
+    refetchQueries: [{ query: GET_DEPARTMENTS }],
+    optimisticResponse: {
+      __typename: "Mutation",
+      deleteDepartment: {
+        __typename: "Department",
+        departmentId: null, // Will be provided when calling the mutation
+      },
+    },
+    onCompleted: (data) => {
+      const deletedDept = data?.deleteDepartment;
+      if (deletedDept) {
+        setDepartments(prevDepartments => 
+          prevDepartments.filter(dept => dept.departmentId !== deletedDept.departmentId)
+        );
+      }
+      setDeletingDepartmentId(null);
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "The department has been successfully deleted.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      console.error("Delete department error:", error);
+      setDeletingDepartmentId(null);
+      const errorMessage = error?.graphQLErrors?.[0]?.message || error?.message || "Failed to delete department!";
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: errorMessage,
+        confirmButtonColor: "#3085d6",
+      });
     },
   });
 
-  const [createDepartment] = useMutation(CREATE_DEPARTMENT, {
-    onCompleted: () => {
-      refetch();
+  const [createDepartment, { loading: creating }] = useMutation(CREATE_DEPARTMENT, {
+    refetchQueries: [{ query: GET_DEPARTMENTS }],
+    optimisticResponse: {
+      __typename: "Mutation",
+      createDepartment: {
+        __typename: "Department",
+        departmentId: `temp-${Date.now()}`,
+        departmentName: newDepartment.name,
+        prefix: newDepartment.prefix,
+      },
+    },
+    onCompleted: (data) => {
+      const createdDept = data?.createDepartment;
+      if (createdDept) {
+        setDepartments(prevDepartments => [...prevDepartments, createdDept]);
+      }
+      Swal.fire({
+        icon: "success",
+        title: "Created!",
+        text: "New department has been created.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      console.error("Create department error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to create department!",
+      });
     },
   });
 
   useEffect(() => {
     if (Array.isArray(data?.departments)) {
+      console.log("Setting departments data:", data.departments);
       setDepartments(data.departments);
     }
   }, [data, setDepartments]);
@@ -50,8 +162,9 @@ const ManageDepartment = ({ departments, setDepartments }) => {
     e.preventDefault();
 
     if (editingDepartment) {
+      setUpdatingDepartmentId(editingDepartment.departmentId);
       try {
-        const result = await updateDepartment({
+        await updateDepartment({
           variables: {
             updateDepartmentInput: {
               departmentId: editingDepartment.departmentId,
@@ -60,34 +173,14 @@ const ManageDepartment = ({ departments, setDepartments }) => {
             },
           },
         });
-
-        const updatedDept = result.data?.updateDepartment;
-        if (updatedDept) {
-          setDepartments(
-            departments.map((dept) =>
-              dept.departmentId === editingDepartment.departmentId
-                ? {
-                    ...updatedDept,
-                    departmentId: editingDepartment.departmentId,
-                  }
-                : dept
-            )
-          );
-          Swal.fire({
-            icon: "success",
-            title: "Updated!",
-            text: "Department updated successfully.",
-            confirmButtonColor: "#3085d6",
-          });
-        }
       } catch (error) {
-        
+        console.error("Update error:", error);
+        setUpdatingDepartmentId(null);
       }
-
       setEditingDepartment(null);
     } else {
       try {
-        const result = await createDepartment({
+        await createDepartment({
           variables: {
             createDepartmentInput: {
               departmentName: newDepartment.name,
@@ -95,24 +188,8 @@ const ManageDepartment = ({ departments, setDepartments }) => {
             },
           },
         });
-
-        const createdDept = result.data?.createDepartment;
-        if (createdDept) {
-          setDepartments([...departments, createdDept]);
-          Swal.fire({
-            icon: "success",
-            title: "Created!",
-            text: "New department has been created.",
-            confirmButtonColor: "#3085d6",
-          });
-        }
       } catch (error) {
-        Swal.fire({
-                 icon: "error",
-                 title: "Oops...",
-                 text: "Something went wrong!",
-                 footer: '<a href="#">Why do I have this issue?</a>',
-               });
+        console.error("Create error:", error);
       }
     }
 
@@ -124,57 +201,44 @@ const ManageDepartment = ({ departments, setDepartments }) => {
     setEditingDepartment(department);
     setNewDepartment({
       name: department.departmentName,
-      prefix:
-        department.prefix ||
-        department.departmentName.slice(0, 4).toUpperCase(),
+      prefix: department.prefix || department.departmentName.slice(0, 4).toUpperCase(),
     });
     setShowDepartmentForm(true);
   };
-const handleDeleteDepartment = async (departmentId) => {
-  const result = await Swal.fire({
-    title: "Are you sure?",
-    text: "This department will be permanently deleted.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Yes, delete it!",
-    cancelButtonText: "Cancel",
-  });
 
-  if (result.isConfirmed) {
-    try {
-      await deleteDepartment({
-        variables: { removeDepartmentId: parseInt(departmentId) },
-      });
+  const handleDeleteDepartment = async (departmentId) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This department will be permanently deleted.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
 
-      
-      setDepartments(
-        departments.filter((dept) => dept.departmentId !== departmentId)
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Deleted!",
-        text: "The department has been successfully deleted.",
-        confirmButtonColor: "#3085d6",
-      });
-    } catch (error) {
-      
-      const errorMessage =
-        error?.graphQLErrors?.[0]?.message ||
-        error?.message ||
-        "Something went wrong while deleting the department!";
-
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: errorMessage,
-        confirmButtonColor: "#3085d6",
-      });
+    if (result.isConfirmed) {
+      setDeletingDepartmentId(departmentId);
+      try {
+        await deleteDepartment({
+          variables: { removeDepartmentId: parseInt(departmentId) },
+          optimisticResponse: {
+            __typename: "Mutation",
+            deleteDepartment: {
+              __typename: "Department",
+              departmentId: departmentId,
+            },
+          },
+        });
+      } catch (error) {
+        console.error("Delete error:", error);
+        setDeletingDepartmentId(null);
+        // Rollback by refetching
+        refetch();
+      }
     }
-  }
-};
+  };
 
   const handleCancelForm = () => {
     setShowDepartmentForm(false);
@@ -182,88 +246,35 @@ const handleDeleteDepartment = async (departmentId) => {
     setNewDepartment({ name: "", prefix: "" });
   };
 
+  // Loading State - Add console log to debug
+  if (loading) {
+    console.log("Showing loading state...");
+    return (
+      <div className="departments-content">
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Loading department data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (error) {
+    console.log("Showing error state:", error);
+    return (
+      <div className="departments-content">
+        <div className="error-message">
+          Error loading department data: {error.message}
+        </div>
+      </div>
+    );
+  }
+
+  console.log("Rendering department table with data:", departments);
+
   return (
     <div className="departments-content">
-      <div className="departments-header">
-        <div className="header-content">
-          <h2>Department Management</h2>
-          <p className="header-subtitle">
-            Organize and manage municipal departments
-          </p>
-        </div>
-        <button
-          onClick={() => setShowDepartmentForm(true)}
-          className="add-department-btn"
-        >
-          <FaPlus className="btn-icon" />
-          Add Department
-        </button>
-      </div>
-
-      {showDepartmentForm && (
-        <div className="department-form-overlay">
-          <div className="department-form-modal">
-            <div className="modal-header">
-              <h3>
-                {editingDepartment ? "Edit Department" : "Add New Department"}
-              </h3>
-              <button onClick={handleCancelForm} className="close-modal-btn">
-                <FaTimes />
-              </button>
-            </div>
-            <form onSubmit={handleAddDepartment}>
-              <div className="form-group">
-                <label>Department Name</label>
-                <input
-                  type="text"
-                  value={newDepartment.name}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    const prefix = name.slice(0, 4).toUpperCase();
-                    setNewDepartment({
-                      name: name,
-                      prefix: prefix,
-                    });
-                  }}
-                  placeholder="e.g., Waterworks, Assesor, Engineering"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Department Code</label>
-                <input
-                  type="text"
-                  value={newDepartment.prefix}
-                  placeholder="Auto-generated"
-                  maxLength="4"
-                  readOnly
-                  className="readonly-input"
-                />
-                <small className="form-help">
-                  Automatically generated from department name
-                </small>
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={handleCancelForm}
-                  className="cancel-btn"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn">
-                  {editingDepartment
-                    ? "Update Department"
-                    : "Create Department"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <div className="departments-table-container">
         <div className="table-header">
           <div className="table-title">
@@ -291,52 +302,63 @@ const handleDeleteDepartment = async (departmentId) => {
               </tr>
             </thead>
             <tbody>
-              {departments.map((department) => (
-                <tr key={department.departmentId} className="table-row">
-                  <td className="department-name-cell">
-                    <div className="department-info">
-                      <div className="department-avatar">
-                        {department.departmentName.charAt(0).toUpperCase()}
+              {departments.map((department) => {
+                const isDeleting = deletingDepartmentId === department.departmentId;
+                const isUpdating = updatingDepartmentId === department.departmentId;
+                const isProcessing = isDeleting || isUpdating;
+                
+                return (
+                  <tr key={department.departmentId} className={`table-row ${isProcessing ? 'processing-row' : ''}`}>
+                    <td className="department-name-cell">
+                      <div className="department-info">
+                        <div className="department-avatar">
+                          {department.departmentName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="department-details">
+                          <span className="department-name">
+                            {department.departmentName}
+                            {isProcessing && (
+                              <span className="processing-indicator">
+                                <div className="spinner-small"></div>
+                                {isDeleting ? "Deleting..." : "Updating..."}
+                              </span>
+                            )}
+                          </span>
+                          <span className="department-code">
+                            {department.prefix || department.departmentName.slice(0, 4).toUpperCase()}
+                          </span>
+                        </div>
                       </div>
-                      <div className="department-details">
-                        <span className="department-name">
-                          {department.departmentName}
-                        </span>
-                        <span className="department-code">
-                          {department.prefix ||
-                            department.departmentName.slice(0, 4).toUpperCase()}
-                        </span>
+                    </td>
+                    <td className="actions-cell">
+                      <div className="actions">
+                        <button
+                          onClick={() => handleEditDepartment(department)}
+                          className="edit-btn"
+                          title="Edit Department"
+                          disabled={isProcessing || deleting || updating}
+                        >
+                          <FaEdit className="btn-icon" />
+                          {isUpdating ? "Editing..." : "Edit"}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDepartment(department.departmentId)}
+                          className="delete-btn"
+                          title="Delete Department"
+                          disabled={isProcessing || deleting || updating}
+                        >
+                          <FaTrash className="btn-icon" />
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="actions-cell">
-                    <div className="actions">
-                      <button
-                        onClick={() => handleEditDepartment(department)}
-                        className="edit-btn"
-                        title="Edit Department"
-                      >
-                        <FaEdit className="btn-icon" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteDepartment(department.departmentId)
-                        }
-                        className="delete-btn"
-                        title="Delete Department"
-                      >
-                        <FaTrash className="btn-icon" />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
-          {departments.length === 0 && (
+          {departments.length === 0 && !loading && (
             <div className="empty-state">
               <div className="empty-icon-wrapper">
                 <FaFolder className="empty-icon" />
@@ -346,6 +368,7 @@ const handleDeleteDepartment = async (departmentId) => {
               <button
                 onClick={() => setShowDepartmentForm(true)}
                 className="empty-state-btn"
+                disabled={creating}
               >
                 <FaPlus className="btn-icon" />
                 Create First Department
@@ -353,7 +376,96 @@ const handleDeleteDepartment = async (departmentId) => {
             </div>
           )}
         </div>
+
+        {/* Add Department Floating Button */}
+        <button
+          onClick={() => setShowDepartmentForm(true)}
+          className="add-department-floating-btn"
+          title="Add Department"
+          disabled={creating || updating || deleting}
+        >
+          <FaPlus className="btn-icon" />
+        </button>
       </div>
+
+      {showDepartmentForm && (
+        <div className="department-form-overlay">
+          <div className="department-form-modal">
+            <div className="modal-header">
+              <h3>
+                {editingDepartment ? "Edit Department" : "Add New Department"}
+              </h3>
+              <button 
+                onClick={handleCancelForm} 
+                className="close-modal-btn"
+                disabled={creating || updating}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <form onSubmit={handleAddDepartment}>
+              <div className="form-group">
+                <label>Department Name</label>
+                <input
+                  type="text"
+                  value={newDepartment.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const prefix = name.slice(0, 4).toUpperCase();
+                    setNewDepartment({
+                      name: name,
+                      prefix: prefix,
+                    });
+                  }}
+                  placeholder="e.g., Waterworks, Assesor, Engineering"
+                  required
+                  disabled={creating || updating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Department Code</label>
+                <input
+                  type="text"
+                  value={newDepartment.prefix}
+                  placeholder="Auto-generated"
+                  maxLength="4"
+                  readOnly
+                  className="readonly-input"
+                />
+                <small className="form-help">
+                  Automatically generated from department name
+                </small>
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  onClick={handleCancelForm}
+                  className="cancel-btn"
+                  disabled={creating || updating}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="submit-btn"
+                  disabled={creating || updating}
+                >
+                  {creating || updating ? (
+                    <>
+                      <div className="spinner-small"></div>
+                      {editingDepartment ? "Updating..." : "Creating..."}
+                    </>
+                  ) : (
+                    editingDepartment ? "Update Department" : "Create Department"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import QueueForm from "../Citizens/QueueForm";
+import Settingspage from "./Settingspage";
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
@@ -51,6 +52,24 @@ const StaffDashboard = () => {
   const speechSynthRef = useRef(null);
   const notificationSoundRef = useRef(null);
   const userMenuRef = useRef(null);
+
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+      const savedTheme = localStorage.getItem("theme") || "light";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+  
+      const channel = new BroadcastChannel('theme-updates');
+      channel.onmessage = (event) => {
+        if (event.data.type === 'THEME_CHANGED') {
+          document.documentElement.setAttribute("data-theme", event.data.theme);
+        }
+      };
+  
+      return () => {
+        channel.close();
+      };
+    }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -237,53 +256,100 @@ const StaffDashboard = () => {
     }
   }, [queuesByDepartment]);
 
-  // Load staff info from session
+  // Load staff info from storage - UPDATED VERSION
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    const userRole = sessionStorage.getItem("userRole");
-    const staffData = sessionStorage.getItem("staffInfo");
+    // Try multiple storage locations for robustness
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const role = localStorage.getItem("role") || sessionStorage.getItem("userRole");
+    
+    // Try to get staff info from multiple locations
+    let staffData = null;
+    
+    // First try localStorage
+    const localStaffInfo = localStorage.getItem("staffInfo");
+    if (localStaffInfo) {
+      try {
+        staffData = JSON.parse(localStaffInfo);
+        console.log("Found staff info in localStorage:", staffData);
+      } catch (e) {
+        console.error("Error parsing localStorage staffInfo:", e);
+      }
+    }
+    
+    // If not found, try sessionStorage
+    if (!staffData) {
+      const sessionStaffInfo = sessionStorage.getItem("staffInfo");
+      if (sessionStaffInfo) {
+        try {
+          staffData = JSON.parse(sessionStaffInfo);
+          console.log("Found staff info in sessionStorage:", staffData);
+        } catch (e) {
+          console.error("Error parsing sessionStorage staffInfo:", e);
+        }
+      }
+    }
 
-    if (!token || !role || !userRole) {
+    // If still no staff data, check if we have basic info in localStorage
+    if (!staffData) {
+      const staffId = localStorage.getItem("staffId");
+      const staffUsername = localStorage.getItem("staffUsername");
+      const staffDepartment = localStorage.getItem("staffDepartment");
+      const staffDepartmentId = localStorage.getItem("staffDepartmentId");
+      const staffDepartmentPrefix = localStorage.getItem("staffDepartmentPrefix");
+      
+      if (staffId && staffUsername) {
+        staffData = {
+          id: staffId,
+          username: staffUsername,
+          department: {
+            id: staffDepartmentId ? parseInt(staffDepartmentId) : 0,
+            name: staffDepartment || "",
+            prefix: staffDepartmentPrefix || ""
+          }
+        };
+        console.log("Created staff info from localStorage items:", staffData);
+      }
+    }
+
+    if (!token || !role) {
+      console.error("No token or role found");
       showNotification("Session expired. Please login again.", "warning");
       handleRedirectToLogin();
       return;
     }
 
     if (!staffData) {
-      showNotification("No session found. Please login.", "warning");
+      console.error("No staff data found in any storage");
+      showNotification("No staff information found. Please login.", "warning");
       handleRedirectToLogin();
       return;
     }
 
-    try {
-      const parsed = JSON.parse(staffData);
-      const department = parsed.department;
+    const department = staffData.department;
 
-      if (!department || !department.id || !department.name || !department.prefix) {
-        showNotification("Invalid department information. Please login again.", "error");
-        handleRedirectToLogin();
-        return;
-      }
-
-      const deptId = parseInt(department.id);
-      if (isNaN(deptId)) {
-        showNotification("Invalid department ID. Please login again.", "error");
-        handleRedirectToLogin();
-        return;
-      }
-
-      setStaffInfo(parsed);
-      setDepartmentInfo({
-        name: department.name.trim(),
-        prefix: department.prefix.trim(),
-        id: deptId,
-      });
-      setIsLoading(false);
-    } catch (error) {
-      showNotification("Invalid session data. Please login again.", "error");
+    if (!department || !department.id || !department.name || !department.prefix) {
+      console.error("Invalid department info:", department);
+      showNotification("Invalid department information. Please login again.", "error");
       handleRedirectToLogin();
+      return;
     }
+
+    const deptId = parseInt(department.id);
+    if (isNaN(deptId)) {
+      console.error("Invalid department ID:", department.id);
+      showNotification("Invalid department ID. Please login again.", "error");
+      handleRedirectToLogin();
+      return;
+    }
+
+    setStaffInfo(staffData);
+    setDepartmentInfo({
+      name: department.name.trim(),
+      prefix: department.prefix.trim(),
+      id: deptId,
+    });
+    setIsLoading(false);
+    console.log("Staff dashboard loaded successfully");
   }, []);
 
   // Update current time
@@ -468,9 +534,9 @@ const StaffDashboard = () => {
     navigate("/login", { replace: true });
   };
 
-  const handleSettings = () => {
+  const handleManageSettings = () => {
     setShowUserMenu(false);
-    showNotification("Settings feature coming soon", "info");
+    setShowSettings(true);
   };
 
   const handleQueueFormSuccess = () => {
@@ -540,10 +606,11 @@ const StaffDashboard = () => {
               
               {showUserMenu && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={handleSettings}>
+                  <button className="dropdown-item" onClick={handleManageSettings}>
                     <Settings size={16} />
-                    <span>Manage Account</span>
+                    <span>Manage Settings</span>
                   </button>
+                  
                   <button className="dropdown-item logout" onClick={handleLogout}>
                     <LogOut size={16} />
                     <span>Logout</span>
@@ -707,6 +774,11 @@ const StaffDashboard = () => {
             <QueueForm onSuccess={handleQueueFormSuccess} />
           </div>
         </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <Settingspage onClose={() => setShowSettings(false)} />
       )}
 
       <Footer />

@@ -9,7 +9,8 @@ export const LOGIN = gql`
       staff {
         staffId
         staffUsername
-        
+        staffFirstname   
+        staffLastname
         department {
           departmentId
           departmentName
@@ -93,7 +94,7 @@ export const UPDATE_ADMIN_PROFILE = gql`
   }
 `;
 
-export const UPDATE_QUEUESATFF_PROFILE = gql`
+export const UPDATE_QUEUESTAFF_PROFILE = gql`
   mutation UpdateStaff($updateStaffInput: UpdateStaffInput!) {
     updateStaff(updateStaffInput: $updateStaffInput) {
       staffId

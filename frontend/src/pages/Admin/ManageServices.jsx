@@ -30,39 +30,130 @@ const ManageServices = () => {
     departmentId: "",
   });
   const [collapsedDepartments, setCollapsedDepartments] = useState(new Set());
+  const [deletingServiceId, setDeletingServiceId] = useState(null);
+  const [updatingServiceId, setUpdatingServiceId] = useState(null);
 
-  const { data: servicesData, refetch: refetchServices } =
-    useQuery(GET_SERVICES);
-  const { data: departmentsData } = useQuery(GET_DEPARTMENTS);
+  // Add proper loading and error states for both queries
+  const { data: servicesData, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useQuery(GET_SERVICES);
+  const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS);
 
-const [createService] = useMutation(CREATE_SERVICE, {
-  onCompleted: () => {
-    refetchServices();
-    Swal.fire({
-      icon: "success",
-      title: "Service created!",
-      text: "The new service has been added successfully.",
-      confirmButtonColor: "#3085d6",
-    });
-  },
-  onError: (error) => {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: error.message || "Something went wrong!",
-    });
-  },
-});
+  // Check if any data is still loading
+  const isLoading = servicesLoading || departmentsLoading;
+  
+  // Check if any query has errors
+  const hasError = servicesError || departmentsError;
 
-  const [updateService] = useMutation(UPDATE_SERVICE, {
-    onCompleted: () => {
-      refetchServices();
+  const [createService, { loading: creating }] = useMutation(CREATE_SERVICE, {
+    refetchQueries: [{ query: GET_SERVICES }],
+    optimisticResponse: {
+      __typename: "Mutation",
+      createService: {
+        __typename: "Service",
+        serviceId: `temp-${Date.now()}`,
+        serviceName: newService.serviceName,
+        department: departmentsData?.departments?.find(
+          dept => dept.departmentId === parseInt(newService.departmentId)
+        ) || null,
+      },
+    },
+    onCompleted: (data) => {
+      // Update local state immediately
+      const createdService = data?.createService;
+      if (createdService) {
+        setServices(prevServices => [...prevServices, createdService]);
+      }
+      Swal.fire({
+        icon: "success",
+        title: "Service created!",
+        text: "The new service has been added successfully.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      console.error("Create service error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.message || "Failed to create service!",
+      });
     },
   });
 
-  const [deleteService] = useMutation(DELETE_SERVICE, {
-    onCompleted: () => {
-      refetchServices();
+  const [updateService, { loading: updating }] = useMutation(UPDATE_SERVICE, {
+    refetchQueries: [{ query: GET_SERVICES }],
+    optimisticResponse: {
+      __typename: "Mutation",
+      updateService: {
+        __typename: "Service",
+        serviceId: editingService?.serviceId,
+        serviceName: newService.serviceName,
+        department: departmentsData?.departments?.find(
+          dept => dept.departmentId === parseInt(newService.departmentId)
+        ) || null,
+      },
+    },
+    onCompleted: (data) => {
+      // Update local state immediately
+      const updatedService = data?.updateService;
+      if (updatedService) {
+        setServices(prevServices => 
+          prevServices.map(service => 
+            service.serviceId === editingService.serviceId ? updatedService : service
+          )
+        );
+      }
+      setUpdatingServiceId(null);
+      Swal.fire({
+        icon: "success",
+        title: "Service updated!",
+        text: "Service updated successfully!",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      console.error("Update service error:", error);
+      setUpdatingServiceId(null);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to update service!",
+      });
+    },
+  });
+
+  const [deleteService, { loading: deleting }] = useMutation(DELETE_SERVICE, {
+    refetchQueries: [{ query: GET_SERVICES }],
+    optimisticResponse: {
+      __typename: "Mutation",
+      deleteService: {
+        __typename: "Service",
+        serviceId: null, // Will be provided when calling the mutation
+      },
+    },
+    onCompleted: (data) => {
+      // Update local state immediately
+      const deletedService = data?.deleteService;
+      if (deletedService) {
+        setServices(prevServices => 
+          prevServices.filter(service => service.serviceId !== deletedService.serviceId)
+        );
+      }
+      setDeletingServiceId(null);
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "The service has been successfully deleted.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      console.error("Delete service error:", error);
+      setDeletingServiceId(null);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to delete service!",
+      });
     },
   });
 
@@ -74,8 +165,7 @@ const [createService] = useMutation(CREATE_SERVICE, {
 
   const groupedServices = services.reduce((acc, service) => {
     const deptId = service.department?.departmentId || "unassigned";
-    const deptName =
-      service.department?.departmentName || "Unassigned Department";
+    const deptName = service.department?.departmentName || "Unassigned Department";
 
     if (!acc[deptId]) {
       acc[deptId] = {
@@ -110,6 +200,7 @@ const [createService] = useMutation(CREATE_SERVICE, {
     e.preventDefault();
 
     if (editingService) {
+      setUpdatingServiceId(editingService.serviceId);
       try {
         await updateService({
           variables: {
@@ -121,12 +212,8 @@ const [createService] = useMutation(CREATE_SERVICE, {
           },
         });
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong!",
-          footer: '<a href="#">Why do I have this issue?</a>',
-        });
+        console.error("Update error:", error);
+        setUpdatingServiceId(null);
       }
       setEditingService(null);
     } else {
@@ -140,12 +227,7 @@ const [createService] = useMutation(CREATE_SERVICE, {
           },
         });
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong!",
-          footer: '<a href="#">Why do I have this issue?</a>',
-        });
+        console.error("Create error:", error);
       }
     }
 
@@ -153,46 +235,43 @@ const [createService] = useMutation(CREATE_SERVICE, {
     setShowServiceForm(false);
   };
 
-const handleEditService = async (service) => {
-  const result = await Swal.fire({
-    title: "Edit Service?",
-    text: `Do you want to edit "${service.serviceName}"?`,
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, edit it!",
-    cancelButtonText: "Cancel",
-  });
+  const handleEditService = async (service) => {
+    const result = await Swal.fire({
+      title: "Edit Service?",
+      text: `Do you want to edit "${service.serviceName}"?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, edit it!",
+      cancelButtonText: "Cancel",
+    });
 
-  if (result.isConfirmed) {
-    try {
-      setEditingService(service);
-      setNewService({
-        serviceName: service.serviceName,
-        departmentId: service.department?.departmentId || "",
-      });
-      setShowServiceForm(true);
+    if (result.isConfirmed) {
+      try {
+        setEditingService(service);
+        setNewService({
+          serviceName: service.serviceName,
+          departmentId: service.department?.departmentId || "",
+        });
+        setShowServiceForm(true);
 
-      
-      Swal.fire({
-        icon: "success",
-        title: "Editing Mode Activated!",
-        text: "You can now update this service’s details.",
-        confirmButtonColor: "#3085d6",
-      });
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Something went wrong while preparing the edit form!",
-      });
+        Swal.fire({
+          icon: "success",
+          title: "Editing Mode Activated!",
+          text: "You can now update this service's details.",
+          confirmButtonColor: "#3085d6",
+        });
+      } catch (error) {
+        console.error(error);
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Something went wrong while preparing the edit form!",
+        });
+      }
     }
-  }
-};
-
-
+  };
 
   const handleDeleteService = async (serviceId) => {
     const result = await Swal.fire({
@@ -207,28 +286,23 @@ const handleEditService = async (service) => {
     });
 
     if (result.isConfirmed) {
+      setDeletingServiceId(serviceId);
       try {
         await deleteService({
           variables: { serviceId: serviceId },
-        });
-
-        setServices(
-          services.filter((service) => service.serviceId !== serviceId)
-        );
-
-        Swal.fire({
-          icon: "success",
-          title: "Deleted!",
-          text: "The service has been successfully deleted.",
-          confirmButtonColor: "#3085d6",
+          optimisticResponse: {
+            __typename: "Mutation",
+            deleteService: {
+              __typename: "Service",
+              serviceId: serviceId,
+            },
+          },
         });
       } catch (error) {
-        console.error(error);
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong while deleting the service!",
-        });
+        console.error("Delete error:", error);
+        setDeletingServiceId(null);
+        // Rollback by refetching
+        refetchServices();
       }
     }
   };
@@ -239,88 +313,32 @@ const handleEditService = async (service) => {
     setNewService({ serviceName: "", departmentId: "" });
   };
 
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className="services-content">
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Loading services data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (hasError) {
+    const errorMessage = servicesError?.message || departmentsError?.message || "Unknown error occurred";
+    return (
+      <div className="services-content">
+        <div className="error-message">
+          Error loading services data: {errorMessage}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="services-content">
-      <div className="services-header">
-        <div className="header-content">
-          <h2>Service Management</h2>
-          <p className="header-subtitle">
-            Manage municipal services organized by department
-          </p>
-        </div>
-        <button
-          onClick={() => setShowServiceForm(true)}
-          className="add-service-btn"
-        >
-          <FaPlus className="btn-icon" />
-          Add Service
-        </button>
-      </div>
-
-      {showServiceForm && (
-        <div className="service-form-overlay">
-          <div className="service-form-modal">
-            <div className="modal-header">
-              <h3>{editingService ? "Edit Service" : "Add New Service"}</h3>
-              <button onClick={handleCancelForm} className="close-modal-btn">
-                <FaTimes />
-              </button>
-            </div>
-            <form onSubmit={handleAddService}>
-              <div className="form-group">
-                <label>Type of Service</label>
-                <input
-                  type="text"
-                  value={newService.serviceName}
-                  onChange={(e) =>
-                    setNewService({
-                      ...newService,
-                      serviceName: e.target.value,
-                    })
-                  }
-                  placeholder="e.g., Building Permit, Business License, Water Connection"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Department</label>
-                <select
-                  value={newService.departmentId}
-                  onChange={(e) =>
-                    setNewService({
-                      ...newService,
-                      departmentId: e.target.value,
-                    })
-                  }
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departmentsData?.departments?.map((dept) => (
-                    <option key={dept.departmentId} value={dept.departmentId}>
-                      {dept.departmentName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={handleCancelForm}
-                  className="cancel-btn"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn">
-                  {editingService ? "Update Service" : "Create Service"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <div className="services-table-container">
         <div className="table-header">
           <div className="table-title">
@@ -338,12 +356,15 @@ const handleEditService = async (service) => {
                   onClick={() => toggleDepartment(group.departmentId)}
                 >
                   <div className="department-info">
-                    <HiOfficeBuilding className="department-icon" />
-                    <h3 className="department-name">{group.departmentName}</h3>
-                    <span className="service-badge">
-                      {group.services.length}{" "}
-                      {group.services.length === 1 ? "Service" : "Services"}
-                    </span>
+                    <div className="department-avatar">
+                      <HiOfficeBuilding className="department-icon" />
+                    </div>
+                    <div className="department-details">
+                      <h3 className="department-name">{group.departmentName}</h3>
+                      <span className="service-badge">
+                        {group.services.length} {group.services.length === 1 ? "Service" : "Services"}
+                      </span>
+                    </div>
                   </div>
                   <button className="collapse-btn">
                     {collapsedDepartments.has(group.departmentId) ? (
@@ -356,64 +377,55 @@ const handleEditService = async (service) => {
 
                 {!collapsedDepartments.has(group.departmentId) && (
                   <div className="services-list">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>
-                            <div className="th-content">
-                              <MdMiscellaneousServices className="th-icon" />
-                              Type of Service
+                    {group.services.map((service) => {
+                      const isDeleting = deletingServiceId === service.serviceId;
+                      const isUpdating = updatingServiceId === service.serviceId;
+                      const isProcessing = isDeleting || isUpdating;
+                      
+                      return (
+                        <div 
+                          key={service.serviceId} 
+                          className={`service-card ${isProcessing ? 'processing-service' : ''}`}
+                        >
+                          <div className="service-info">
+                            <div className="service-icon">
+                              <FaConciergeBell />
                             </div>
-                          </th>
-                          <th>
-                            <div className="th-content">
-                              <IoMdSettings className="th-icon" />
-                              Actions
-                            </div>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {group.services.map((service) => (
-                          <tr key={service.serviceId} className="table-row">
-                            <td className="service-type-cell">
-                              <div className="service-info">
-                                <div className="service-icon">
-                                  <FaConciergeBell />
-                                </div>
-                                <div className="service-details">
-                                  <span className="service-name">
-                                    {service.serviceName}
+                            <div className="service-details">
+                              <span className="service-name">
+                                {service.serviceName}
+                                {isProcessing && (
+                                  <span className="processing-indicator">
+                                    <div className="spinner-small"></div>
+                                    {isDeleting ? "Deleting..." : "Updating..."}
                                   </span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="actions-cell">
-                              <div className="actions">
-                                <button
-                                  onClick={() => handleEditService(service)}
-                                  className="edit-btn"
-                                  title="Edit Service"
-                                >
-                                  <FaEdit className="btn-icon" />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteService(service.serviceId)
-                                  }
-                                  className="delete-btn"
-                                  title="Delete Service"
-                                >
-                                  <FaTrash className="btn-icon" />
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="service-actions">
+                            <button
+                              onClick={() => handleEditService(service)}
+                              className="edit-btn"
+                              title="Edit Service"
+                              disabled={isProcessing}
+                            >
+                              <FaEdit className="btn-icon" />
+                              {isUpdating ? "Editing..." : "Edit"}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteService(service.serviceId)}
+                              className="delete-btn"
+                              title="Delete Service"
+                              disabled={isProcessing}
+                            >
+                              <FaTrash className="btn-icon" />
+                              {isDeleting ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -435,7 +447,99 @@ const handleEditService = async (service) => {
             </div>
           )}
         </div>
+
+        {/* Add Service Floating Button */}
+        <button
+          onClick={() => setShowServiceForm(true)}
+          className="add-service-floating-btn"
+          title="Add Service"
+          disabled={creating || updating}
+        >
+          <FaPlus className="btn-icon" />
+        </button>
       </div>
+
+      {showServiceForm && (
+        <div className="service-form-overlay">
+          <div className="service-form-modal">
+            <div className="modal-header">
+              <h3>{editingService ? "Edit Service" : "Add New Service"}</h3>
+              <button 
+                onClick={handleCancelForm} 
+                className="close-modal-btn"
+                disabled={creating || updating}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <form onSubmit={handleAddService}>
+              <div className="form-group">
+                <label>Type of Service</label>
+                <input
+                  type="text"
+                  value={newService.serviceName}
+                  onChange={(e) =>
+                    setNewService({
+                      ...newService,
+                      serviceName: e.target.value,
+                    })
+                  }
+                  placeholder="e.g., Building Permit, Business License, Water Connection"
+                  required
+                  disabled={creating || updating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Department</label>
+                <select
+                  value={newService.departmentId}
+                  onChange={(e) =>
+                    setNewService({
+                      ...newService,
+                      departmentId: e.target.value,
+                    })
+                  }
+                  required
+                  disabled={creating || updating}
+                >
+                  <option value="">Select Department</option>
+                  {departmentsData?.departments?.map((dept) => (
+                    <option key={dept.departmentId} value={dept.departmentId}>
+                      {dept.departmentName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  onClick={handleCancelForm}
+                  className="cancel-btn"
+                  disabled={creating || updating}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="submit-btn" 
+                  disabled={creating || updating}
+                >
+                  {creating || updating ? (
+                    <>
+                      <div className="spinner-small"></div>
+                      {editingService ? "Updating..." : "Creating..."}
+                    </>
+                  ) : (
+                    editingService ? "Update Service" : "Create Service"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

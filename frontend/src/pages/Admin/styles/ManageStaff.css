@@ -6,50 +6,72 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* Header Section */
-.staff-header {
+/* Loading State */
+.loading-overlay {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 32px;
-  padding: 0 8px;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #718096;
 }
 
-.header-content h2 {
-  color: #0c4a6e;
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid #0c4a6e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
-.header-subtitle {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0;
-  font-weight: 500;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.add-staff-btn {
+/* Error Message */
+.error-message {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.875rem;
+  margin: 2rem;
+}
+
+/* Add Staff Floating Button */
+.add-staff-floating-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
   background: #0c4a6e;
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font-size: 24px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(12, 74, 110, 0.3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  z-index: 100;
 }
 
-.add-staff-btn:hover {
+.add-staff-floating-btn:hover {
   background: #0369a1;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(12, 74, 110, 0.4);
 }
 
-.add-staff-btn .btn-icon {
-  font-size: 12px;
+.add-staff-floating-btn .btn-icon {
+  font-size: 20px;
 }
 
 /* Modal Overlay */
@@ -218,6 +240,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .table-header {
@@ -343,6 +366,21 @@
   font-weight: 600;
 }
 
+/* Role Cell */
+.role-cell {
+  padding: 16px 24px;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #f0f5fa;
+  color: #0c4a6e;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Actions Cell */
 .actions-cell {
   padding: 16px 24px;
@@ -453,25 +491,6 @@
     padding: 16px;
   }
   
-  .staff-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  
-  .header-content {
-    text-align: center;
-  }
-  
-  .header-content h2 {
-    font-size: 24px;
-  }
-  
-  .add-staff-btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
   .staff-form-modal {
     padding: 24px;
     margin: 16px;
@@ -499,6 +518,7 @@
   .staff-table th,
   .staff-name-cell,
   .department-cell,
+  .role-cell,
   .actions-cell {
     padding: 12px 16px;
   }
@@ -536,6 +556,18 @@
   
   .empty-state {
     padding: 40px 16px;
+  }
+  
+  .add-staff-floating-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .add-staff-floating-btn .btn-icon {
+    font-size: 18px;
   }
 }
 
