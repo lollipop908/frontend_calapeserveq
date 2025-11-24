@@ -8,17 +8,21 @@ import {
   FiLogOut,
   FiSettings,
   FiBarChart2,
-  FiFilter
+  FiFilter,
+  FiImage,
+  FiTrash2,
+  FiEdit,
+  FiUpload
 } from "react-icons/fi";
 import { MdDashboard } from "react-icons/md";
 import { Building2 } from "lucide-react";
 import "./styles/Dashboard.css";
 
-
 import ManageDepartment from "./ManageDepartment";
 import ManageStaff from "./ManageStaff";
 import ManageServices from "./ManageServices";
 import ManageProfile from "./ManageProfile";
+import ManageAds from "./ManageAds";
 import ReportsPanel from "./ReportsPanel";
 
 import { useQuery } from "@apollo/client";
@@ -31,6 +35,7 @@ import {
 import logo from "/calapelogo.png";
 import Swal from "sweetalert2";
 import { logoutPreservingRoleData } from "../../utils/logoutHelper";
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -76,39 +81,36 @@ const AdminDashboard = () => {
     }
   }, [servData]);
 
- useEffect(() => {
-  if (staffData && staffData.staffs) {
-    setStaffList(staffData.staffs);
-  }
-}, [staffData]);
-
-
- const handleLogout = () => {
-  Swal.fire({
-    title: "Are you sure you want to logout?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Yes, logout",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-  }).then((result) => {
-    if (result.isConfirmed) {
-      // Use the logout helper that preserves role-specific data
-      logoutPreservingRoleData();
-      navigate("/login");
-
-      Swal.fire({
-        icon: "success",
-        title: "You have logged out successfully",
-        showConfirmButton: false,
-        timer: 1500, 
-        timerProgressBar: true,
-      });
+  useEffect(() => {
+    if (staffData && staffData.staffs) {
+      setStaffList(staffData.staffs);
     }
-  });
-};
+  }, [staffData]);
 
+  const handleLogout = () => {
+    Swal.fire({
+      title: "Are you sure you want to logout?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, logout",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        logoutPreservingRoleData();
+        navigate("/login");
+
+        Swal.fire({
+          icon: "success",
+          title: "You have logged out successfully",
+          showConfirmButton: false,
+          timer: 1500, 
+          timerProgressBar: true,
+        });
+      }
+    });
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -185,6 +187,8 @@ const AdminDashboard = () => {
         );
       case "services":
         return <ManageServices services={services} setServices={setServices} />;
+      case "ads":
+        return <ManageAds />;
       default:
         return renderDashboard();
     }
@@ -267,6 +271,17 @@ const AdminDashboard = () => {
               <FiSettings className="nav-icon" size={20} />
               {sidebarOpen && <span className="nav-text">Manage Services</span>}
             </button>
+
+            <button
+              className={`nav-item ${
+                activeSection === "ads" ? "active" : ""
+              }`}
+              onClick={() => setActiveSection("ads")}
+              title="Manage Ads"
+            >
+              <FiImage className="nav-icon" size={20} />
+              {sidebarOpen && <span className="nav-text">Manage Ads</span>}
+            </button>
           </nav>
 
           <div className="sidebar-footer">
@@ -290,6 +305,7 @@ const AdminDashboard = () => {
                 {activeSection === "staff" && "Staff Management"}
                 {activeSection === "departments" && "Department Management"}
                 {activeSection === "services" && "Services Management"}
+                {activeSection === "ads" && "Advertisement Management"}
               </h1>
               <p className="page-subtitle">
                 {activeSection === "dashboard" &&
@@ -302,6 +318,8 @@ const AdminDashboard = () => {
                   "Organize departments and structure"}
                 {activeSection === "services" &&
                   "Manage municipal services and offerings"}
+                {activeSection === "ads" &&
+                  "Upload and manage advertisements for TV monitors"}
               </p>
             </div>
           </div>

@@ -151,7 +151,7 @@ const TVmonitor = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 📋 Process queue data
+  // 📋 Process queue data - FIXED VERSION
   useEffect(() => {
     if (queueData && queueData.QueueByDepartment) {
       const queues = queueData.QueueByDepartment;
@@ -167,16 +167,14 @@ const TVmonitor = () => {
         const ticketNumber = `${prefix}-${serving.number}`;
         console.log("🎫 Now serving:", ticketNumber);
 
-        setCurrentTicket({
-          number: ticketNumber,
-          service: serving.service?.serviceName || "SERVICE",
-        });
+        // Store just the ticket number string, not an object
+        setCurrentTicket(ticketNumber);
       } else {
         console.log("⏸️ No ticket currently serving");
         setCurrentTicket(null);
       }
 
-      // Get next tickets in queue
+      // Get next tickets in queue - FIXED: return array of strings, not objects
       const pending = queues
         .filter((q) => String(q.status).toUpperCase() === "WAITING")
         .sort((a, b) => {
@@ -193,13 +191,11 @@ const TVmonitor = () => {
         .slice(0, 3)
         .map((q) => {
           const prefix = q.department?.prefix || departmentPrefix;
-          return {
-            number: `${prefix}-${q.number}`,
-            service: q.service?.serviceName || "SERVICE",
-          };
+          // Return just the ticket number string
+          return `${prefix}-${q.number}`;
         });
 
-      console.log("📋 Next tickets:", pending.map((t) => t.number).join(", "));
+      console.log("📋 Next tickets:", pending.join(", "));
       setNextTickets(pending);
     }
   }, [queueData, departmentPrefix]);
@@ -247,36 +243,45 @@ const TVmonitor = () => {
           <div className="time-display">{currentTime}</div>
         </div>
 
-        <div className="main-section">
-          <div className="now-serving-panel">
-            <div className="label">Now Serving</div>
-            <div className="current-ticket">
-              {queueLoading ? (
-                <div className="ticket-placeholder">Loading...</div>
-              ) : currentTicket ? (
-                <>
-                  <div className="ticket-type">{currentTicket.service}</div>
-                  <div className="ticket-number">{currentTicket.number}</div>
-                </>
-              ) : (
-                <div className="ticket-placeholder">Waiting for queue...</div>
-              )}
+        <div className="main-layout">
+          <div className="queue-section">
+            <div className="queue-cards">
+              <div className="now-serving-panel">
+                <div className="label">Now Serving</div>
+                <div className="current-ticket">
+                  {queueLoading ? (
+                    <div className="ticket-placeholder">Loading...</div>
+                  ) : currentTicket ? (
+                    <div className="ticket-number">{currentTicket}</div>
+                  ) : (
+                    <div className="ticket-placeholder">Waiting for queue...</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="previous-panel">
+                <div className="label">Coming Next</div>
+                <div className="previous-tickets">
+                  {nextTickets.length > 0 ? (
+                    nextTickets.map((ticket, index) => (
+                      <div key={index} className="previous-ticket">
+                        <div className="prev-number">{ticket}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-previous">No upcoming tickets</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="previous-panel">
-            <div className="label">Coming Next</div>
-            <div className="previous-tickets">
-              {nextTickets.length > 0 ? (
-                nextTickets.map((ticket, index) => (
-                  <div key={index} className="previous-ticket">
-                    <div className="prev-number">{ticket.number}</div>
-                    <div className="prev-type">{ticket.service}</div>
-                  </div>
-                ))
-              ) : (
-                <div className="no-previous">No upcoming tickets</div>
-              )}
+          <div className="ad-section">
+            <div className="ad-placeholder">
+              <div className="ad-content">
+                <span className="ad-text">Advertisement</span>
+                <span className="coming-soon">Coming Soon</span>
+              </div>
             </div>
           </div>
         </div>
