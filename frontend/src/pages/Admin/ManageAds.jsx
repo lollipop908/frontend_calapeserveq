@@ -72,58 +72,39 @@ const ManageAds = () => {
       const formData = new FormData();
       const operations = {
         query: `mutation UploadAd($file: Upload!) { uploadAd(file: $file) }`,
-        variables: {
-          file: null,
-        },
+        variables: { file: null },
       };
 
-      const map = {
-        '0': ['variables.file'],
-      };
+      const map = { 0: ["variables.file"] };
 
-      formData.append('operations', JSON.stringify(operations));
-      formData.append('map', JSON.stringify(map));
-      formData.append('0', selectedFile, selectedFile.name);
+      formData.append("operations", JSON.stringify(operations));
+      formData.append("map", JSON.stringify(map));
+      formData.append("0", selectedFile, selectedFile.name);
 
       const token = localStorage.getItem("token");
-      const graphqlUri = import.meta.env.VITE_GRAPHQL_URI || "http://localhost:3000/graphql";
-      
+      const graphqlUri =
+        import.meta.env.VITE_GRAPHQL_URI || "http://localhost:3000/graphql";
+
       const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch(graphqlUri, {
         method: "POST",
         body: formData,
-        headers: headers,
+        headers,
         credentials: "include",
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-      }
-
       const result = await response.json();
 
-      if (result.errors) {
-        throw new Error(result.errors[0]?.message || "Upload failed");
-      }
+      if (result.errors) throw new Error(result.errors[0].message);
 
-      if (result.data?.uploadAd === true) {
-        Swal.fire("Uploaded!", "Advertisement uploaded successfully!", "success");
-        setSelectedFile(null);
-        const fileInput = document.getElementById("file-input");
-        if (fileInput) fileInput.value = "";
-        refetch();
-      } else {
-        throw new Error("Upload failed - unexpected response");
-      }
+      Swal.fire("Uploaded!", "Advertisement uploaded successfully!", "success");
+      setSelectedFile(null);
+      document.getElementById("file-input").value = "";
+      refetch();
     } catch (err) {
-      console.error("Upload error:", err);
-      const errorMessage = err?.message || "Upload failed";
-      Swal.fire("Upload failed", errorMessage, "error");
+      Swal.fire("Upload failed", err.message, "error");
     } finally {
       setIsUploading(false);
     }
@@ -140,60 +121,39 @@ const ManageAds = () => {
       const formData = new FormData();
       const operations = {
         query: `mutation UpdateAd($id: Int!, $file: Upload!) { updateAd(id: $id, file: $file) }`,
-        variables: {
-          id: adId,
-          file: null,
-        },
+        variables: { id: adId, file: null },
       };
 
-      const map = {
-        '0': ['variables.file'],
-      };
+      const map = { 0: ["variables.file"] };
 
-      formData.append('operations', JSON.stringify(operations));
-      formData.append('map', JSON.stringify(map));
-      formData.append('0', selectedFile, selectedFile.name);
+      formData.append("operations", JSON.stringify(operations));
+      formData.append("map", JSON.stringify(map));
+      formData.append("0", selectedFile, selectedFile.name);
 
       const token = localStorage.getItem("token");
-      const graphqlUri = import.meta.env.VITE_GRAPHQL_URI || "http://localhost:3000/graphql";
-      
+      const graphqlUri =
+        import.meta.env.VITE_GRAPHQL_URI || "http://localhost:3000/graphql";
+
       const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch(graphqlUri, {
         method: "POST",
         body: formData,
-        headers: headers,
+        headers,
         credentials: "include",
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Update failed: ${response.status} ${response.statusText}`);
-      }
-
       const result = await response.json();
+      if (result.errors) throw new Error(result.errors[0].message);
 
-      if (result.errors) {
-        throw new Error(result.errors[0]?.message || "Update failed");
-      }
-
-      if (result.data?.updateAd === true) {
-        Swal.fire("Updated!", "Advertisement updated successfully!", "success");
-        setSelectedFile(null);
-        setEditingAd(null);
-        const fileInput = document.getElementById("file-input");
-        if (fileInput) fileInput.value = "";
-        refetch();
-      } else {
-        throw new Error("Update failed - unexpected response");
-      }
+      Swal.fire("Updated!", "Advertisement updated successfully!", "success");
+      setSelectedFile(null);
+      setEditingAd(null);
+      document.getElementById("file-input").value = "";
+      refetch();
     } catch (err) {
-      console.error("Update error:", err);
-      const errorMessage = err?.message || "Update failed";
-      Swal.fire("Update failed", errorMessage, "error");
+      Swal.fire("Update failed", err.message, "error");
     } finally {
       setIsUploading(false);
     }
@@ -212,18 +172,13 @@ const ManageAds = () => {
 
     if (result.isConfirmed) {
       try {
-        const { data } = await deleteAd({
-          variables: { id: adId },
-        });
-
-        if (data?.deleteAd === true) {
-          Swal.fire("Deleted!", "Advertisement deleted successfully!", "success");
+        const { data } = await deleteAd({ variables: { id: adId } });
+        if (data.deleteAd) {
+          Swal.fire("Deleted!", "Advertisement deleted!", "success");
           refetch();
         }
       } catch (err) {
-        console.error("Delete error:", err);
-        const errorMessage = err?.graphQLErrors?.[0]?.message || err?.message || "Delete failed";
-        Swal.fire("Delete failed", errorMessage, "error");
+        Swal.fire("Delete failed", err.message, "error");
       }
     }
   };
@@ -231,33 +186,30 @@ const ManageAds = () => {
   const handleEdit = (ad) => {
     setEditingAd(ad);
     setSelectedFile(null);
-    const fileInput = document.getElementById("file-input");
-    if (fileInput) fileInput.value = "";
+    document.getElementById("file-input").value = "";
   };
 
   const handleCancelEdit = () => {
     setEditingAd(null);
     setSelectedFile(null);
-    const fileInput = document.getElementById("file-input");
-    if (fileInput) fileInput.value = "";
+    document.getElementById("file-input").value = "";
   };
 
-  // Function to get the full image URL
+  // FIXED: Proper URL formatting for images
   const getImageUrl = (filepath) => {
-    if (!filepath) return '';
-    // If it's already a full URL, return as is
-    if (filepath.startsWith('http')) return filepath;
-    // Otherwise, construct the URL relative to your server
-    const baseUrl = import.meta.env.VITE_GRAPHQL_URI ? 
-      import.meta.env.VITE_GRAPHQL_URI.replace('/graphql', '') : 
-      'http://localhost:3000';
-    return `${baseUrl}${filepath}`;
+    if (!filepath) return "";
+    // filepath stored in DB is like 'uploads/filename.jpg'
+    return `http://localhost:3000/${filepath.replace(/\\/g, "/")}`;
   };
+
+  if (loading) return <p>Loading ads...</p>;
 
   return (
     <div className="upload-container">
       <div className="upload-section">
-        <h2>{editingAd ? "Update Advertisement" : "Upload New Advertisement"}</h2>
+        <h2>
+          {editingAd ? "Update Advertisement" : "Upload New Advertisement"}
+        </h2>
         <input
           type="file"
           id="file-input"
@@ -268,15 +220,15 @@ const ManageAds = () => {
         <div className="upload-actions">
           {editingAd ? (
             <>
-              <button 
-                onClick={() => handleUpdate(editingAd.id)} 
+              <button
+                onClick={() => handleUpdate(editingAd.id)}
                 disabled={isUploading || !selectedFile}
                 className="btn-update"
               >
                 {isUploading ? "Updating..." : "Update"}
               </button>
-              <button 
-                onClick={handleCancelEdit} 
+              <button
+                onClick={handleCancelEdit}
                 disabled={isUploading}
                 className="btn-cancel"
               >
@@ -284,8 +236,8 @@ const ManageAds = () => {
               </button>
             </>
           ) : (
-            <button 
-              onClick={handleUpload} 
+            <button
+              onClick={handleUpload}
               disabled={isUploading || !selectedFile}
               className="btn-upload"
             >
@@ -306,23 +258,28 @@ const ManageAds = () => {
             {data?.ads?.map((ad) => (
               <div key={ad.id} className="ad-card">
                 <div className="ad-preview">
-                  {ad.mimetype?.startsWith('image/') ? (
-                    <img 
-                      src={getImageUrl(ad.filepath)} 
+                  {ad.mimetype?.startsWith("image/") ? (
+                    <img
+                      src={getImageUrl(ad.filepath)}
                       alt={ad.filename}
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
                       }}
                     />
                   ) : (
                     <div className="file-placeholder">
-                      <span>{ad.mimetype?.includes('video') ? '🎥' : '📄'}</span>
+                      <span>
+                        {ad.mimetype?.includes("video") ? "🎥" : "📄"}
+                      </span>
                       <span>Preview not available</span>
                     </div>
                   )}
-                  {ad.mimetype?.startsWith('image/') && (
-                    <div className="file-placeholder" style={{display: 'none'}}>
+                  {ad.mimetype?.startsWith("image/") && (
+                    <div
+                      className="file-placeholder"
+                      style={{ display: "none" }}
+                    >
                       <span>🖼️</span>
                       <span>Image failed to load</span>
                     </div>
@@ -331,7 +288,8 @@ const ManageAds = () => {
                 <div className="ad-info">
                   <p className="ad-filename">{ad.filename}</p>
                   <p className="ad-meta">
-                    {ad.mimetype} • {new Date(ad.createdAt).toLocaleDateString()}
+                    {ad.mimetype} •{" "}
+                    {new Date(ad.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="ad-actions">
