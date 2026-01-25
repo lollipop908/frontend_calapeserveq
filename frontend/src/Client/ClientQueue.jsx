@@ -9,21 +9,17 @@ import {
   RotateCcw,
   Check,
   ArrowLeft,
-  User,
-  Settings,
-  LogOut,
 } from "lucide-react";
-import "./styles/QueueForm.css";
-import QueueModal from "./QueueModal";
-import { useNavigate } from "react-router-dom";
-import { GET_DEPARTMENTS, GET_SERVICES, GET_QUEUESTAFF_PROFILE } from "../../graphql/query";
-import { CREATE_QUEUE } from "../../graphql/mutation";
-import Header from "../../components/Header/Header";
-import Footer from "../../components/Footer/Footer";
-import SettingsPage from "./SettingsPage";
-import { logoutPreservingRoleData } from "../../utils/logoutHelper";
+import "../pages/Citizens/styles/QueueForm.css";
+import QueueModal from "../pages/Citizens/QueueModal";
+import { GET_DEPARTMENTS, GET_SERVICES } from "../graphql/query";
+import { CREATE_QUEUE } from "../graphql/mutation";
+import Header from "../components/Header/Header";
+import Footer from "../components/Footer/Footer";
 
-const QueueForm = ({ onSuccess }) => {
+import { useNavigate } from "react-router-dom";
+
+const ClientQueue = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -31,103 +27,6 @@ const QueueForm = ({ onSuccess }) => {
     serviceId: "",
     priority: "",
   });
-  
-  const [queueStaffMenuOpen, setQueueStaffMenuOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const staffUsername = localStorage.getItem("queueStaffUsername") || 
-                       localStorage.getItem("staffUsername") || 
-                       "Queue Staff";
-
-  const staffId = localStorage.getItem("queueStaffId") || 
-                  localStorage.getItem("staffId") || 
-                  localStorage.getItem("userId");
-
-  const token = localStorage.getItem("token");
-
-  // Check authentication on component mount
-  useEffect(() => {
-    console.log("QueueForm auth check - Token:", token, "Staff ID:", staffId);
-    
-    if (!token || !staffId) {
-      console.error("No authentication token or staff ID found in localStorage");
-      // Try to get from sessionStorage as fallback
-      const sessionToken = sessionStorage.getItem("token");
-      const sessionStaffInfo = sessionStorage.getItem("staffInfo");
-      let sessionStaffId = null;
-      
-      if (sessionStaffInfo) {
-        try {
-          const parsedInfo = JSON.parse(sessionStaffInfo);
-          sessionStaffId = parsedInfo.id;
-          console.log("Found staff info in sessionStorage:", parsedInfo);
-        } catch (e) {
-          console.error("Error parsing sessionStorage staffInfo:", e);
-        }
-      }
-      
-      if (!sessionToken || !sessionStaffId) {
-        console.error("No valid session found, redirecting to login");
-        navigate("/login");
-        return;
-      }
-    } else {
-      console.log("Authentication valid, staff username:", staffUsername);
-    }
-  }, [token, staffId, staffUsername, navigate]);
-
-  // Listen for theme changes from Settings page
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "light";
-    document.documentElement.setAttribute("data-theme", savedTheme);
-
-    const channel = new BroadcastChannel('theme-updates');
-    channel.onmessage = (event) => {
-      if (event.data.type === 'THEME_CHANGED') {
-        document.documentElement.setAttribute("data-theme", event.data.theme);
-      }
-    };
-
-    return () => {
-      channel.close();
-    };
-  }, []);
-
-  // Fetch staff profile - with better error handling
-  const {
-    data: staffData,
-    loading: staffLoading,
-    error: staffError,
-    refetch: refetchStaff
-  } = useQuery(GET_QUEUESTAFF_PROFILE, {
-    variables: { 
-      staffId: staffId ? parseInt(staffId, 10) : null 
-    },
-    skip: !staffId,
-    fetchPolicy: "network-only",
-    onError: (error) => {
-      console.error("Staff profile query error:", error);
-      // If query fails, try to use stored data
-      const storedStaffInfo = localStorage.getItem("staffInfo") || 
-                             sessionStorage.getItem("staffInfo");
-      if (storedStaffInfo) {
-        try {
-          const parsedInfo = JSON.parse(storedStaffInfo);
-          console.log("Using stored staff info:", parsedInfo);
-        } catch (e) {
-          console.error("Error parsing stored staff info:", e);
-        }
-      }
-      
-      if (error.message.includes("Unauthorized") || error.message.includes("Authentication")) {
-        console.error("Authentication error, clearing storage and redirecting");
-        localStorage.clear();
-        sessionStorage.clear();
-        navigate("/login");
-      }
-    }
-  });
-
-  const staffInfo = staffData?.queueStaff || staffData?.staff || staffData?.getQueueStaffProfile || null;
 
   const {
     data: departmentsData,
@@ -181,20 +80,14 @@ const QueueForm = ({ onSuccess }) => {
 
   // Fixed department options with better data extraction
   const departmentOptions = useMemo(() => {
-    console.log("Departments data:", departmentsData);
-    console.log("Services data:", servicesData);
-
-    // Try to get departments from different possible response structures
     let departments = [];
     
-    // Try departments query first
     if (departmentsData?.departments) {
       departments = Array.isArray(departmentsData.departments) 
         ? departmentsData.departments 
         : [];
     }
     
-    // If no departments found, try to extract from services
     if (departments.length === 0 && servicesData?.services) {
       const services = Array.isArray(servicesData.services) ? servicesData.services : [];
       const departmentMap = new Map();
@@ -214,7 +107,6 @@ const QueueForm = ({ onSuccess }) => {
       departments = Array.from(departmentMap.values());
     }
 
-    console.log("Processed department options:", departments);
     return departments;
   }, [departmentsData, servicesData]);
 
@@ -230,7 +122,6 @@ const QueueForm = ({ onSuccess }) => {
   const [error, setError] = useState("");
   const [filteredServices, setFilteredServices] = useState([]);
 
-  // Fixed service filtering
   useEffect(() => {
     if (servicesData?.services && formData.departmentId) {
       const services = Array.isArray(servicesData.services) ? servicesData.services : [];
@@ -249,7 +140,7 @@ const QueueForm = ({ onSuccess }) => {
     const { name, value } = e.target;
     const processedValue =
       name === "departmentId" || name === "serviceId"
-        ? value // Keep as string for select values, convert later when needed
+        ? value 
         : value;
 
     setFormData((prev) => ({
@@ -284,11 +175,6 @@ const QueueForm = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    if (!staffId) {
-      setError("Staff authentication required. Please login again.");
-      return;
-    }
-
     setIsSubmitting(true);
     setError("");
 
@@ -315,8 +201,6 @@ const QueueForm = ({ onSuccess }) => {
         serviceId: Number(formData.serviceId),
         priority: normalizedPriority,
       };
-
-      console.log("Creating queue with input:", createQueueInput);
 
       const { data } = await createQueue({
         variables: { createQueueInput },
@@ -346,12 +230,6 @@ const QueueForm = ({ onSuccess }) => {
         } catch (e) {
           console.warn("Broadcast channel not available:", e);
         }
-
-        if (onSuccess) {
-          setTimeout(() => {
-            onSuccess();
-          }, 2000);
-        }
       }
     } catch (error) {
       console.error("Error creating queue:", error);
@@ -374,16 +252,6 @@ const QueueForm = ({ onSuccess }) => {
     });
     setCurrentStep(1);
     setError("");
-  };
-
-  const handleLogout = () => {
-    logoutPreservingRoleData();
-    navigate("/login");
-  };
-
-  const handleManageSettings = () => {
-    setQueueStaffMenuOpen(false);
-    setShowSettings(true);
   };
 
   const getStepTitle = () => {
@@ -430,14 +298,14 @@ const QueueForm = ({ onSuccess }) => {
     return service?.serviceName || "Not selected";
   };
 
-  if (staffLoading || departmentsLoading || servicesLoading) {
+  if (departmentsLoading || servicesLoading) {
     return (
       <div className="queue-page-wrapper">
         <Header />
         <div className="queue-home-container">
           <div className="queue-loading-container">
             <Loader2 className="queue-spinner" size={32} />
-            <p>Loading queue system...</p>
+            <p>Loading...</p>
           </div>
         </div>
         <Footer />
@@ -445,30 +313,8 @@ const QueueForm = ({ onSuccess }) => {
     );
   }
 
-  if (!token || !staffId) {
-    return (
-      <div className="queue-page-wrapper">
-        <Header />
-        <div className="queue-home-container">
-          <div className="queue-error-container">
-            <div className="queue-error-message">
-              <p>Authentication required. Please login.</p>
-              <button 
-                className="queue-retry-btn" 
-                onClick={() => navigate("/login")}
-              >
-                Go to Login
-              </button>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (staffError || departmentsError || servicesError) {
-    const errorMessage = staffError?.message || departmentsError?.message || servicesError?.message;
+  if (departmentsError || servicesError) {
+    const errorMessage = departmentsError?.message || servicesError?.message;
     
     return (
       <div className="queue-page-wrapper">
@@ -483,12 +329,6 @@ const QueueForm = ({ onSuccess }) => {
               >
                 Retry
               </button>
-              <button 
-                className="queue-logout-btn" 
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
             </div>
           </div>
         </div>
@@ -501,38 +341,17 @@ const QueueForm = ({ onSuccess }) => {
     <div className="queue-page-wrapper">
       <Header />
       <div className="queue-home-container">
-        {/* Staff Menu */}
-        <div className="queue-staff-menu-container">
-          <button 
-            className="queue-staff-menu-toggle"
-            onClick={() => setQueueStaffMenuOpen(!queueStaffMenuOpen)}
-          >
-            <div className="queue-staff-avatar">
-              <User size={20} />
-            </div>
-            <div className="queue-staff-info">
-              <span className="queue-staff-name">{staffUsername || "Queue Staff"}</span>
-              <span className="queue-staff-role">queue staff</span>
-            </div>
-            <ChevronDown size={18} className={`queue-staff-chevron ${queueStaffMenuOpen ? 'queue-staff-chevron-open' : ''}`} />
-          </button>
-          
-          {queueStaffMenuOpen && (
-            <div className="queue-staff-menu-dropdown">
-              <button className="queue-staff-menu-item" onClick={handleManageSettings}>
-                <Settings size={18} />
-                <span>Manage Settings</span>
-              </button>
-              <div className="queue-staff-menu-divider"></div>
-              <button className="queue-staff-menu-item queue-staff-menu-logout" onClick={handleLogout}>
-                <LogOut size={18} />
-                <span>Logout</span>
-              </button>
-            </div>
-          )}
-        </div>
-
+        
         <div className="queue-form-container">
+          <button 
+            className="queue-previous-btn" 
+            onClick={() => navigate("/home")}
+            style={{ width: 'fit-content', marginBottom: '1rem', border: 'none', background: 'transparent', padding: 0 }}
+          >
+            <ArrowLeft size={20} />
+            <span>Back to Home</span>
+          </button>
+
           <div className="queue-form-header">
             <div className="queue-progress-container">
               <div className="queue-progress-steps">
@@ -774,6 +593,11 @@ const QueueForm = ({ onSuccess }) => {
                       className={`queue-submit-btn ${isSubmitting ? "queue-submit-btn-loading" : ""}`}
                       disabled={isSubmitting}
                       onClick={handleSubmit}
+                      style={{ 
+                        background: 'transparent', 
+                        color: '#10b981', 
+                        border: '1px solid #10b981' 
+                      }}
                     >
                       {!isSubmitting ? (
                         <>
@@ -800,23 +624,14 @@ const QueueForm = ({ onSuccess }) => {
               onClose={() => {
                 setShowModal(false);
                 resetForm();
-                if (onSuccess) {
-                  onSuccess();
-                }
               }}
             />
           )}
         </div>
       </div>
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <SettingsPage onClose={() => setShowSettings(false)} />
-      )}
-
       <Footer />
     </div>
   );
 };
 
-export default QueueForm;
+export default ClientQueue;

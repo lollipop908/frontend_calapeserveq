@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Plus,
   X,
+  Loader2,
 } from "lucide-react";
 import "./styles/StaffDashboard.css";
 import { useQuery, useMutation } from "@apollo/client";
@@ -44,7 +45,8 @@ const StaffDashboard = () => {
   });
   const [staffInfo, setStaffInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCallLoading, setIsCallLoading] = useState(false);
+  const [isCallLoading, setIsCallLoading] = useState(false); // Creating global loading lock
+  const [callingPriority, setCallingPriority] = useState(null); // specific button loading state
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [volume, setVolume] = useState(0.8);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -57,20 +59,20 @@ const StaffDashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-      const savedTheme = localStorage.getItem("theme") || "light";
-      document.documentElement.setAttribute("data-theme", savedTheme);
-  
-      const channel = new BroadcastChannel('theme-updates');
-      channel.onmessage = (event) => {
-        if (event.data.type === 'THEME_CHANGED') {
-          document.documentElement.setAttribute("data-theme", event.data.theme);
-        }
-      };
-  
-      return () => {
-        channel.close();
-      };
-    }, []);
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+
+    const channel = new BroadcastChannel("theme-updates");
+    channel.onmessage = (event) => {
+      if (event.data.type === "THEME_CHANGED") {
+        document.documentElement.setAttribute("data-theme", event.data.theme);
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -84,7 +86,8 @@ const StaffDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
 
     const createNotificationSound = () => {
       const oscillator = audioContext.createOscillator();
@@ -98,8 +101,14 @@ const StaffDashboard = () => {
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
 
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume * 0.3, audioContext.currentTime + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      gainNode.gain.linearRampToValueAtTime(
+        volume * 0.3,
+        audioContext.currentTime + 0.01
+      );
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.3
+      );
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
@@ -145,11 +154,12 @@ const StaffDashboard = () => {
     utterance.pitch = 1;
 
     const voices = speechSynthRef.current.getVoices();
-    const englishVoice = voices.find(
-      (voice) =>
-        voice.lang.startsWith("en") &&
-        (voice.name.includes("Google") || voice.name.includes("Microsoft"))
-    ) || voices.find((voice) => voice.lang.startsWith("en"));
+    const englishVoice =
+      voices.find(
+        (voice) =>
+          voice.lang.startsWith("en") &&
+          (voice.name.includes("Google") || voice.name.includes("Microsoft"))
+      ) || voices.find((voice) => voice.lang.startsWith("en"));
 
     if (englishVoice) {
       utterance.voice = englishVoice;
@@ -220,13 +230,12 @@ const StaffDashboard = () => {
     refetchQueries: [
       {
         query: GET_QUEUES_BY_DEPARTMENT,
-        variables: { departmentId: departmentInfo.id }
-      }
+        variables: { departmentId: departmentInfo.id },
+      },
     ],
     awaitRefetchQueries: true,
   });
 
-  // Calculate statistics
   useEffect(() => {
     if (Array.isArray(queuesByDepartment) && queuesByDepartment.length > 0) {
       const waitingCount = queuesByDepartment.filter(
@@ -238,7 +247,9 @@ const StaffDashboard = () => {
       ).length;
 
       const servedCount = queuesByDepartment.filter(
-        (queue) => queue.status?.toLowerCase() === "complete" || queue.status?.toLowerCase() === "completed"
+        (queue) =>
+          queue.status?.toLowerCase() === "complete" ||
+          queue.status?.toLowerCase() === "completed"
       ).length;
 
       setStatistics({
@@ -255,47 +266,43 @@ const StaffDashboard = () => {
     }
   }, [queuesByDepartment]);
 
-  // Load staff info from storage - UPDATED VERSION
   useEffect(() => {
-    // Try multiple storage locations for robustness
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    const role = localStorage.getItem("role") || sessionStorage.getItem("userRole");
-    
-    // Try to get staff info from multiple locations
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    const role =
+      localStorage.getItem("role") || sessionStorage.getItem("userRole");
+
     let staffData = null;
-    
-    // First try localStorage
+
     const localStaffInfo = localStorage.getItem("staffInfo");
     if (localStaffInfo) {
       try {
         staffData = JSON.parse(localStaffInfo);
-        console.log("Found staff info in localStorage:", staffData);
       } catch (e) {
         console.error("Error parsing localStorage staffInfo:", e);
       }
     }
-    
-    // If not found, try sessionStorage
+
     if (!staffData) {
       const sessionStaffInfo = sessionStorage.getItem("staffInfo");
       if (sessionStaffInfo) {
         try {
           staffData = JSON.parse(sessionStaffInfo);
-          console.log("Found staff info in sessionStorage:", staffData);
         } catch (e) {
           console.error("Error parsing sessionStorage staffInfo:", e);
         }
       }
     }
 
-    // If still no staff data, check if we have basic info in localStorage
     if (!staffData) {
       const staffId = localStorage.getItem("staffId");
       const staffUsername = localStorage.getItem("staffUsername");
       const staffDepartment = localStorage.getItem("staffDepartment");
       const staffDepartmentId = localStorage.getItem("staffDepartmentId");
-      const staffDepartmentPrefix = localStorage.getItem("staffDepartmentPrefix");
-      
+      const staffDepartmentPrefix = localStorage.getItem(
+        "staffDepartmentPrefix"
+      );
+
       if (staffId && staffUsername) {
         staffData = {
           id: staffId,
@@ -303,10 +310,9 @@ const StaffDashboard = () => {
           department: {
             id: staffDepartmentId ? parseInt(staffDepartmentId) : 0,
             name: staffDepartment || "",
-            prefix: staffDepartmentPrefix || ""
-          }
+            prefix: staffDepartmentPrefix || "",
+          },
         };
-        console.log("Created staff info from localStorage items:", staffData);
       }
     }
 
@@ -326,9 +332,17 @@ const StaffDashboard = () => {
 
     const department = staffData.department;
 
-    if (!department || !department.id || !department.name || !department.prefix) {
+    if (
+      !department ||
+      !department.id ||
+      !department.name ||
+      !department.prefix
+    ) {
       console.error("Invalid department info:", department);
-      showNotification("Invalid department information. Please login again.", "error");
+      showNotification(
+        "Invalid department information. Please login again.",
+        "error"
+      );
       handleRedirectToLogin();
       return;
     }
@@ -348,7 +362,6 @@ const StaffDashboard = () => {
       id: deptId,
     });
     setIsLoading(false);
-    console.log("Staff dashboard loaded successfully");
   }, []);
 
   // Update current time
@@ -373,17 +386,18 @@ const StaffDashboard = () => {
         service: q.service,
       }));
 
-      const activeQueues = transformed.filter((q) => 
-        q.status?.toLowerCase() !== "complete" && 
-        q.status?.toLowerCase() !== "completed"
+      const activeQueues = transformed.filter(
+        (q) =>
+          q.status?.toLowerCase() !== "complete" &&
+          q.status?.toLowerCase() !== "completed"
       );
-      
+
       setQueueList(activeQueues);
 
-      const currentServingQueue = transformed.find((q) => 
-        q.status?.toLowerCase() === "serving"
+      const currentServingQueue = transformed.find(
+        (q) => q.status?.toLowerCase() === "serving"
       );
-      
+
       if (currentServingQueue) {
         setCurrentServing(currentServingQueue.queueId);
       } else {
@@ -442,22 +456,38 @@ const StaffDashboard = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleCallNext = async () => {
+  const handleCallNext = async (specificPriority) => {
     if (!Array.isArray(queuesByDepartment)) {
       showNotification("Error: Queue data is not in correct format", "error");
       return;
     }
-    
+
     const waitingCustomers = queuesByDepartment.filter(
-      (item) => item.status?.toLowerCase() === "waiting"
+      (item) => {
+        const isWaiting = item.status?.toLowerCase() === "waiting";
+        if (!isWaiting) return false;
+        
+        if (specificPriority === "regular") {
+          return item.priority?.toLowerCase() === "regular";
+        } else if (specificPriority === "priority") {
+          return item.priority?.toLowerCase() !== "regular";
+        }
+        return true;
+      }
     );
 
     if (!waitingCustomers.length) {
-      showNotification("No citizens in queue", "warning");
+      showNotification(`No ${specificPriority || ""} citizens in queue`, "warning");
+      return;
+    }
+
+    if (!waitingCustomers.length) {
+      showNotification(`No ${specificPriority || ""} citizens in queue`, "warning");
       return;
     }
 
     setIsCallLoading(true);
+    setCallingPriority(specificPriority);
 
     try {
       const currentServingCustomer = queuesByDepartment.find(
@@ -482,7 +512,8 @@ const StaffDashboard = () => {
       });
 
       const nextCustomer = sortedQueue[0];
-      const queueId = nextCustomer.queueId || nextCustomer.id || nextCustomer.queue_id;
+      const queueId =
+        nextCustomer.queueId || nextCustomer.id || nextCustomer.queue_id;
 
       if (!queueId) {
         throw new Error("Next customer has no queueId field");
@@ -507,6 +538,7 @@ const StaffDashboard = () => {
       showNotification("Failed to call next citizen", "error");
     } finally {
       setIsCallLoading(false);
+      setCallingPriority(null);
     }
   };
 
@@ -514,7 +546,7 @@ const StaffDashboard = () => {
     const servingCustomer = queuesByDepartment.find(
       (item) => item.status?.toLowerCase() === "serving"
     );
-    
+
     if (servingCustomer) {
       const queueNumber = `${departmentInfo.prefix}-${servingCustomer.number}`;
       showNotification(`Repeating call for ${queueNumber}`, "info");
@@ -589,7 +621,7 @@ const StaffDashboard = () => {
             </div>
 
             <div className="user-profile" ref={userMenuRef}>
-              <button 
+              <button
                 className="user-profile-btn"
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
@@ -597,20 +629,31 @@ const StaffDashboard = () => {
                   <User size={18} />
                 </div>
                 <div className="user-info">
-                  <span className="user-name">{staffInfo?.username || "Staff User"}</span>
+                  <span className="user-name">
+                    {staffInfo?.username || "Staff User"}
+                  </span>
                   <span className="user-role">staff</span>
                 </div>
-                <ChevronDown size={16} className={`chevron ${showUserMenu ? 'rotate' : ''}`} />
+                <ChevronDown
+                  size={16}
+                  className={`chevron ${showUserMenu ? "rotate" : ""}`}
+                />
               </button>
-              
+
               {showUserMenu && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={handleManageSettings}>
+                  <button
+                    className="dropdown-item"
+                    onClick={handleManageSettings}
+                  >
                     <Settings size={16} />
                     <span>Manage Settings</span>
                   </button>
-                  
-                  <button className="dropdown-item logout" onClick={handleLogout}>
+
+                  <button
+                    className="dropdown-item logout"
+                    onClick={handleLogout}
+                  >
                     <LogOut size={16} />
                     <span>Logout</span>
                   </button>
@@ -639,38 +682,22 @@ const StaffDashboard = () => {
                     : "None"}
                 </div>
                 <div className="serving-details">
-                  {currentServing && (() => {
-                    const servingCustomer = queuesByDepartment.find(
-                      (item) => item.queueId === currentServing
-                    );
-                    return servingCustomer ? (
-                      <>
-                        {servingCustomer.priority === "Priority" && (
-                          <Star className="priority-star" size={14} />
-                        )}
-                        {servingCustomer.service?.serviceName || "Standard Service"}
-                      </>
-                    ) : null;
-                  })()}
+                  {currentServing &&
+                    (() => {
+                      const servingCustomer = queuesByDepartment.find(
+                        (item) => item.queueId === currentServing
+                      );
+                      return servingCustomer ? (
+                        <>
+                          {servingCustomer.priority === "Priority" && (
+                            <Star className="priority-star" size={14} />
+                          )}
+                          {servingCustomer.service?.serviceName ||
+                            "Standard Service"}
+                        </>
+                      ) : null;
+                    })()}
                 </div>
-              </div>
-              <div className="action-buttons">
-                <button
-                  className={`call-next-btn ${isCallLoading ? "loading" : ""}`}
-                  onClick={handleCallNext}
-                  disabled={isCallLoading || isSpeaking}
-                >
-                  <Bell size={16} />
-                  {isCallLoading ? "Calling..." : "Call Next"}
-                </button>
-                <button
-                  className="repeat-call-btn"
-                  onClick={handleRepeatCall}
-                  disabled={!currentServing || isSpeaking}
-                >
-                  <RotateCcw size={16} />
-                  Repeat Call
-                </button>
               </div>
             </div>
           </div>
@@ -713,48 +740,152 @@ const StaffDashboard = () => {
               Queue List
             </h2>
             <div className="queue-container">
-              <div className="queue-header">
-                <div className="queue-col">Ticket</div>
-                <div className="queue-col">Service</div>
-                <div className="queue-col">Priority</div>
-                <div className="queue-col">Status</div>
-              </div>
-              <div className="queue-list">
-                {queueList.map((item, index) => (
-                  <div
-                    key={item.id ?? index}
-                    className={`queue-item ${item.status?.toLowerCase()} ${
-                      item.priority?.toLowerCase() === "priority"
-                        ? "priority-item"
-                        : ""
-                    }`}
-                  >
-                    <div className="queue-col">
-                      <span className="queue-number">
-                        {item.displayNumber || item.number || item.id}
-                      </span>
-                    </div>
-                    <div className="queue-col">
-                      <span className="service-name">{item.type}</span>
-                    </div>
-                    <div className="queue-col">
-                      <span className={`badge priority ${item.priority?.toLowerCase() || ""}`}>
-                        {item.priority}
-                      </span>
-                    </div>
-                    <div className="queue-col">
-                      <span className={`status ${item.status?.toLowerCase() || ""}`}>
-                        {item.status}
-                      </span>
+              <div className="queue-split-container">
+                {/* Regular Queue List */}
+                <div className="queue-column">
+                  <div className="column-header-group">
+                    <h3 className="column-title">Regular</h3>
+                    <div className="column-actions">
+                      <button
+                        className="column-action-btn call-btn"
+                        onClick={() => handleCallNext('regular')}
+                        disabled={isCallLoading || isSpeaking}
+                      >
+                        {callingPriority === 'regular' ? (
+                          <Loader2 size={14} className="loading-spinner-btn" />
+                        ) : (
+                          <Bell size={14} />
+                        )}
+                        {callingPriority === 'regular' ? "Calling..." : "Call Next"}
+                      </button>
+                      <button
+                        className="column-action-btn repeat-btn"
+                        onClick={handleRepeatCall}
+                        disabled={
+                          !currentServing || 
+                          isSpeaking || 
+                          queuesByDepartment.find(q => q.queueId === currentServing)?.priority?.toLowerCase() !== 'regular'
+                        }
+                      >
+                        <RotateCcw size={14} />
+                        Repeat
+                      </button>
                     </div>
                   </div>
-                ))}
-                {queueList.length === 0 && (
-                  <div className="empty-queue">
-                    <Users size={40} className="empty-icon" />
-                    <p>No citizens in queue</p>
+                  <div className="queue-list-wrapper">
+                    <div className="queue-header">
+                      <div className="queue-col">Ticket</div>
+                      <div className="queue-col">Service</div>
+                      <div className="queue-col">Status</div>
+                    </div>
+                    <div className="queue-list">
+                      {queueList
+                        .filter(item => item.priority?.toLowerCase() === 'regular')
+                        .map((item, index) => (
+                        <div
+                          key={item.id ?? index}
+                          className={`queue-item ${item.status?.toLowerCase()}`}
+                        >
+                          <div className="queue-col">
+                            <span className="queue-number">
+                              {item.displayNumber || item.number || item.id}
+                            </span>
+                          </div>
+                          <div className="queue-col">
+                            <span className="service-name">{item.type}</span>
+                          </div>
+                          <div className="queue-col">
+                            <span
+                              className={`status ${item.status?.toLowerCase() || ""}`}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {queueList.filter(item => item.priority?.toLowerCase() === 'regular').length === 0 && (
+                        <div className="empty-queue">
+                          <Users size={32} className="empty-icon" />
+                          <p>No regular queues</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
+
+                {/* Priority Queue List */}
+                <div className="queue-column">
+                  <div className="column-header-group">
+                    <h3 className="column-title priority-title">
+                      Priority <span className="priority-sub">(Senior/PWD/Pregnant)</span>
+                    </h3>
+                    <div className="column-actions">
+                      <button
+                        className="column-action-btn call-btn"
+                        onClick={() => handleCallNext('priority')}
+                        disabled={isCallLoading || isSpeaking}
+                      >
+                        {callingPriority === 'priority' ? (
+                          <Loader2 size={14} className="loading-spinner-btn" />
+                        ) : (
+                          <Bell size={14} />
+                        )}
+                        {callingPriority === 'priority' ? "Calling..." : "Call Next"}
+                      </button>
+                      <button
+                        className="column-action-btn repeat-btn"
+                        onClick={handleRepeatCall}
+                        disabled={
+                          !currentServing || 
+                          isSpeaking || 
+                          queuesByDepartment.find(q => q.queueId === currentServing)?.priority?.toLowerCase() === 'regular'
+                        }
+                      >
+                        <RotateCcw size={14} />
+                        Repeat
+                      </button>
+                    </div>
+                  </div>
+                  <div className="queue-list-wrapper">
+                    <div className="queue-header">
+                      <div className="queue-col">Ticket</div>
+                      <div className="queue-col">Service</div>
+                      <div className="queue-col">Status</div>
+                    </div>
+                    <div className="queue-list">
+                      {queueList
+                        .filter(item => item.priority?.toLowerCase() !== 'regular')
+                        .map((item, index) => (
+                        <div
+                          key={item.id ?? index}
+                          className={`queue-item priority-item ${item.status?.toLowerCase()}`}
+                        >
+                          <div className="queue-col">
+                            <span className="queue-number">
+                              {item.displayNumber || item.number || item.id}
+                            </span>
+                          </div>
+                          <div className="queue-col">
+                            <span className="service-name">{item.type}</span>
+                          </div>
+                          <div className="queue-col">
+                            <span
+                              className={`status ${item.status?.toLowerCase() || ""}`}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {queueList.filter(item => item.priority?.toLowerCase() !== 'regular').length === 0 && (
+                        <div className="empty-queue">
+                          <Star size={32} className="empty-icon priority-icon" />
+                          <p>No priority queues</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -762,9 +893,15 @@ const StaffDashboard = () => {
       </div>
 
       {showQueueForm && (
-        <div className="queue-form-modal-overlay" onClick={() => setShowQueueForm(false)}>
-          <div className="queue-form-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button 
+        <div
+          className="queue-form-modal-overlay"
+          onClick={() => setShowQueueForm(false)}
+        >
+          <div
+            className="queue-form-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
               className="modal-close-btn"
               onClick={() => setShowQueueForm(false)}
             >
@@ -775,10 +912,7 @@ const StaffDashboard = () => {
         </div>
       )}
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <Settingspage onClose={() => setShowSettings(false)} />
-      )}
+      {showSettings && <Settingspage onClose={() => setShowSettings(false)} />}
 
       <Footer />
     </div>

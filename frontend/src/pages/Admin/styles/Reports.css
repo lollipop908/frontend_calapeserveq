@@ -1,0 +1,100 @@
+.reports {
+  background: #ffffff;
+  padding: 30px;
+  margin: 30px auto;
+  width: 100%;
+  max-width: 550px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  font-style: italic;
+  font-family: "Courier New", Courier, monospace;
+  letter-spacing: 1px;
+}
+
+.download-button {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.downloadbtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s ease-in-out;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.downloadbtn svg {
+  font-size: 20px;
+}
+
+.downloadbtn:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.45);
+}
+
+.downloadbtn:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 768px) {
+  .reports {
+    padding: 24px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .downloadbtn {
+    width: 100%;
+    max-width: 250px;
+  }
+}
+
+@media (max-width: 500px) {
+  .reports {
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .title {
+    font-size: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .download-button {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .downloadbtn {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 15px;
+  }
+}

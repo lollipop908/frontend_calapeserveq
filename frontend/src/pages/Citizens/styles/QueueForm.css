@@ -483,10 +483,19 @@
   border-color: #9ca3af;
 }
 
+
 .queue-form-select:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.queue-next-btn:focus,
+.queue-previous-btn:focus,
+.queue-submit-btn:focus,
+.queue-reset-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 /* Select Arrow */

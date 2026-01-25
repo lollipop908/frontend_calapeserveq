@@ -14,7 +14,7 @@ import {
 import "./styles/Settingspage.css";
 import { useMutation, useQuery } from "@apollo/client";
 import { GET_STAFF_PROFILE } from "../../graphql/query";
-import { UPDATE_STAFF } from "../../graphql/mutation";
+import { UPDATE_PASSWORD } from "../../graphql/mutation";
 
 const SettingsPage = ({ onClose }) => {
   const location = useLocation();
@@ -25,164 +25,128 @@ const SettingsPage = ({ onClose }) => {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Determine staff credentials based on current route ONLY
-  // This Settings page is for regular staff, so it should only be accessed from /staff/dashboard
-  // We ONLY use route-specific keys - staffInfo is only valid if it matches staffId
+  // Get staff credentials from localStorage
   const getStaffCredentials = () => {
-    // Check if we're on staff dashboard route
-    if (location.pathname.includes("/staff/dashboard")) {
-      // ONLY use staff-specific keys (these are preserved across logins)
-      const id = localStorage.getItem("staffId");
-      const username = localStorage.getItem("staffUsername");
-      const staffInfoStr = localStorage.getItem("staffInfo");
-      
-      console.log("Staff Settings - Reading from localStorage:", {
-        route: location.pathname,
-        staffId: id,
-        staffUsername: username,
-        hasStaffInfo: !!staffInfoStr,
-        allStaffKeys: {
-          staffId: localStorage.getItem("staffId"),
-          staffUsername: localStorage.getItem("staffUsername"),
-          staffInfo: localStorage.getItem("staffInfo")
+    const id = localStorage.getItem("staffId");
+    const username = localStorage.getItem("staffUsername");
+    const staffInfoStr = localStorage.getItem("staffInfo");
+
+    if (staffInfoStr) {
+      try {
+        const parsed = JSON.parse(staffInfoStr);
+        if (
+          parsed.role?.toLowerCase() === "staff" &&
+          String(parsed.id) === String(id)
+        ) {
+          return { staffId: id, staffUsername: parsed.username || username };
         }
-      });
-      
-      // If we have role-specific keys, use them
-      if (id) {
-        // If we have the full info object, verify it's staff role and IDs match
-        if (staffInfoStr) {
-          try {
-            const parsed = JSON.parse(staffInfoStr);
-            const parsedRole = parsed.role?.toLowerCase().replace(/\s+/g, '');
-            // Only use if it's staff data (not queuestaff or admin) and IDs match
-            if (parsedRole === "staff" && parsed.id && String(parsed.id) === String(id)) {
-              console.log("Using staffInfo data:", parsed.username);
-              return {
-                staffId: id,
-                staffUsername: parsed.username || username || "Staff User"
-              };
-            } else {
-              console.warn("staffInfo role mismatch:", { parsedRole, expectedRole: "staff", parsedId: parsed.id, staffId: id });
-            }
-          } catch (e) {
-            console.error("Error parsing staffInfo:", e);
-          }
-        }
-        
-        // Use the ID and username keys (these are the source of truth for staff)
-        console.log("Using staffId/staffUsername:", { id, username });
-        return { 
-          staffId: id, 
-          staffUsername: username || "Staff User" 
-        };
+      } catch (e) {
+        console.error("Error parsing staffInfo:", e);
       }
-      
-      // If no staff-specific keys found, return null/empty
-      console.warn("No staff-specific data found in localStorage for route:", location.pathname);
-      return {
-        staffId: null,
-        staffUsername: null
-      };
     }
-    // Default fallback
-    return {
-      staffId: localStorage.getItem("staffId"),
-      staffUsername: localStorage.getItem("staffUsername")
-    };
+
+    return { staffId: id, staffUsername: username || "Staff User" };
   };
 
   const { staffId, staffUsername } = getStaffCredentials();
 
-  // Monitor online/offline status
+  // Online/offline detection
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
-  // Get regular staff profile
+  // Fetch staff profile
   const {
     data: staffData,
     loading: staffLoading,
     error: staffError,
-    refetch: refetchStaff
+    refetch: refetchStaff,
   } = useQuery(GET_STAFF_PROFILE, {
-    variables: { 
-      staffId: staffId ? parseInt(staffId, 10) : null 
-    },
+    variables: { staffId: staffId ? parseInt(staffId, 10) : null },
     skip: !staffId,
     fetchPolicy: "network-only",
   });
 
   const staffInfo = staffData?.staff || staffData?.getStaffProfile || null;
 
-  // Password form state only
+  // Form state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  // Theme settings state
+  // Theme state
   const [themeSettings, setThemeSettings] = useState({
     theme: localStorage.getItem("theme") || "light",
   });
 
-  // Update mutation for regular staff
-  const [updateStaff] = useMutation(UPDATE_STAFF);
+  // Apollo mutation
+  const [updatePassword] = useMutation(UPDATE_PASSWORD);
 
-  // Apply theme on mount
+  // Apply saved theme
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
+  // Handle input change
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
     setMessage({ type: "", text: "" });
   };
 
+  // Handle theme change
   const handleThemeChange = (theme) => {
     setThemeSettings({ theme });
     localStorage.setItem("theme", theme);
     document.documentElement.setAttribute("data-theme", theme);
-    
-    // Broadcast theme change to other tabs
+
     try {
-      const channel = new BroadcastChannel('theme-updates');
-      channel.postMessage({ type: 'THEME_CHANGED', theme });
+      const channel = new BroadcastChannel("theme-updates");
+      channel.postMessage({ type: "THEME_CHANGED", theme });
       channel.close();
     } catch (e) {
-      console.warn('BroadcastChannel not available:', e);
+      console.warn("BroadcastChannel not available:", e);
     }
-    
-    setMessage({ 
-      type: "success", 
-      text: `Theme changed to ${theme}` 
-    });
+
+    setMessage({ type: "success", text: `Theme changed to ${theme}` });
     setTimeout(() => setMessage({ type: "", text: "" }), 3000);
   };
 
+  // Handle password submit
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isOnline) {
-      setMessage({ 
-        type: "error", 
-        text: "No internet connection. Please check your network." 
-      });
+      setMessage({ type: "error", text: "No internet connection." });
+      return;
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setMessage({ type: "error", text: "All fields are required." });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setMessage({ type: "error", text: "Password must be at least 6 characters." });
       return;
     }
 
@@ -190,86 +154,31 @@ const SettingsPage = ({ onClose }) => {
     setMessage({ type: "", text: "" });
 
     try {
-      // Validate passwords
-      if (!passwordForm.currentPassword) {
-        setMessage({ 
-          type: "error", 
-          text: "Current password is required" 
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!passwordForm.newPassword) {
-        setMessage({ 
-          type: "error", 
-          text: "New password is required" 
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-        setMessage({ 
-          type: "error", 
-          text: "New passwords do not match" 
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (passwordForm.newPassword.length < 6) {
-        setMessage({ 
-          type: "error", 
-          text: "New password must be at least 6 characters" 
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const updateData = {
-        staffId: parseInt(staffId, 10),
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      };
-
-      const { data } = await updateStaff({
-        variables: { 
-          updateStaffInput: updateData 
-        }
+      const { data } = await updatePassword({
+        variables: {
+          staffId: parseInt(staffId, 10),
+          newPassword,
+          // If backend expects currentPassword, include it here
+          // currentPassword,
+        },
       });
 
-      if (data?.updateStaff) {
-        setMessage({ 
-          type: "success", 
-          text: "Password updated successfully" 
-        });
-        
-        // Clear password fields
-        setPasswordForm({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        
+      if (data?.updatePassword) {
+        setMessage({ type: "success", text: "Password updated successfully!" });
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
         setTimeout(() => setMessage({ type: "", text: "" }), 3000);
       }
     } catch (error) {
       console.error("Error updating password:", error);
-      const errorMsg = 
-        error?.graphQLErrors?.[0]?.message ||
-        error?.message ||
-        "Failed to update password";
-      setMessage({ 
-        type: "error", 
-        text: errorMsg 
+      setMessage({
+        type: "error",
+        text: error?.graphQLErrors?.[0]?.message || error.message || "Failed to update password",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show loading state
   if (staffLoading) {
     return (
       <div className="settings-modal-overlay" onClick={onClose}>
@@ -283,7 +192,6 @@ const SettingsPage = ({ onClose }) => {
     );
   }
 
-  // Show error if no internet or query error
   if (!isOnline || staffError) {
     return (
       <div className="settings-modal-overlay" onClick={onClose}>
@@ -292,26 +200,17 @@ const SettingsPage = ({ onClose }) => {
             <WifiOff size={48} className="settings-error-icon" />
             <h2>Connection Error</h2>
             <p>
-              {!isOnline 
-                ? "No internet connection. Please check your network."
+              {!isOnline
+                ? "No internet connection."
                 : staffError?.message || "Failed to load settings."}
             </p>
-            <button 
+            <button
               className="settings-retry-btn"
-              onClick={() => {
-                if (isOnline) {
-                  refetchStaff();
-                } else {
-                  window.location.reload();
-                }
-              }}
+              onClick={() => (isOnline ? refetchStaff() : window.location.reload())}
             >
               Retry
             </button>
-            <button 
-              className="settings-back-btn-error"
-              onClick={onClose}
-            >
+            <button className="settings-back-btn-error" onClick={onClose}>
               <ArrowLeft size={18} />
               Back to Dashboard
             </button>
@@ -323,30 +222,22 @@ const SettingsPage = ({ onClose }) => {
 
   return (
     <div className="settings-modal-overlay" onClick={onClose}>
-      <div className="settings-modal-content" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
+      <div
+        className="settings-modal-content"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="settings-header">
-          <button 
-            className="settings-back-btn"
-            onClick={onClose}
-          >
-            <ArrowLeft size={18} />
-          </button>
           <div className="settings-header-content">
             <h1 className="settings-title">Staff Settings</h1>
             <p className="settings-subtitle">
               Manage your staff account preferences
             </p>
           </div>
-          <button 
-            className="settings-close-btn"
-            onClick={onClose}
-          >
+          <button className="settings-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
-        {/* Offline Warning */}
         {!isOnline && (
           <div className="settings-message settings-message-warning">
             <WifiOff size={16} />
@@ -354,24 +245,26 @@ const SettingsPage = ({ onClose }) => {
           </div>
         )}
 
-        {/* Message Display */}
         {message.text && (
           <div className={`settings-message settings-message-${message.type}`}>
             {message.text}
           </div>
         )}
 
-        {/* Tabs */}
         <div className="settings-tabs">
           <button
-            className={`settings-tab ${activeTab === "account" ? "settings-tab-active" : ""}`}
+            className={`settings-tab ${
+              activeTab === "account" ? "settings-tab-active" : ""
+            }`}
             onClick={() => setActiveTab("account")}
           >
             <User size={16} />
             <span>Account</span>
           </button>
           <button
-            className={`settings-tab ${activeTab === "theme" ? "settings-tab-active" : ""}`}
+            className={`settings-tab ${
+              activeTab === "theme" ? "settings-tab-active" : ""
+            }`}
             onClick={() => setActiveTab("theme")}
           >
             <Palette size={16} />
@@ -379,7 +272,6 @@ const SettingsPage = ({ onClose }) => {
           </button>
         </div>
 
-        {/* Content Area */}
         <div className="settings-content-area">
           {activeTab === "account" && (
             <div className="settings-section">
@@ -388,24 +280,31 @@ const SettingsPage = ({ onClose }) => {
                 <p>View your staff account details</p>
               </div>
 
-              {/* Account Info - Read Only */}
               <div className="settings-info-section">
                 <div className="settings-info-item">
                   <label>Username</label>
-                  <div className="settings-info-value">{staffUsername || "N/A"}</div>
+                  <div className="settings-info-value">
+                    {staffUsername || "N/A"}
+                  </div>
                 </div>
 
                 <div className="settings-info-item">
                   <label>First Name</label>
                   <div className="settings-info-value">
-                    {staffInfo?.staffFirstname || staffInfo?.firstName || staffInfo?.firstname || "N/A"}
+                    {staffInfo?.staffFirstname ||
+                      staffInfo?.firstName ||
+                      staffInfo?.firstname ||
+                      "N/A"}
                   </div>
                 </div>
 
                 <div className="settings-info-item">
                   <label>Last Name</label>
                   <div className="settings-info-value">
-                    {staffInfo?.staffLastname || staffInfo?.lastName || staffInfo?.lastname || "N/A"}
+                    {staffInfo?.staffLastname ||
+                      staffInfo?.lastName ||
+                      staffInfo?.lastname ||
+                      "N/A"}
                   </div>
                 </div>
 
@@ -417,7 +316,6 @@ const SettingsPage = ({ onClose }) => {
 
               <div className="settings-divider"></div>
 
-              {/* Password Change Form */}
               <form onSubmit={handlePasswordSubmit} className="settings-form">
                 <h3 className="settings-subsection-title">Change Password</h3>
                 <p className="settings-subsection-subtitle">
@@ -465,13 +363,19 @@ const SettingsPage = ({ onClose }) => {
                         className="settings-password-toggle"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                       >
-                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showNewPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
                       </button>
                     </div>
                   </div>
 
                   <div className="settings-form-group">
-                    <label htmlFor="confirmPassword">Confirm New Password *</label>
+                    <label htmlFor="confirmPassword">
+                      Confirm New Password *
+                    </label>
                     <div className="settings-password-wrapper">
                       <input
                         type={showNewPassword ? "text" : "password"}
@@ -488,7 +392,11 @@ const SettingsPage = ({ onClose }) => {
                         className="settings-password-toggle"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                       >
-                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showNewPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -525,8 +433,10 @@ const SettingsPage = ({ onClose }) => {
               </div>
 
               <div className="theme-options">
-                <div 
-                  className={`theme-option ${themeSettings.theme === "light" ? "theme-option-active" : ""}`}
+                <div
+                  className={`theme-option ${
+                    themeSettings.theme === "light" ? "theme-option-active" : ""
+                  }`}
                   onClick={() => handleThemeChange("light")}
                 >
                   <div className="theme-preview theme-preview-light">
@@ -542,8 +452,10 @@ const SettingsPage = ({ onClose }) => {
                   )}
                 </div>
 
-                <div 
-                  className={`theme-option ${themeSettings.theme === "dark" ? "theme-option-active" : ""}`}
+                <div
+                  className={`theme-option ${
+                    themeSettings.theme === "dark" ? "theme-option-active" : ""
+                  }`}
                   onClick={() => handleThemeChange("dark")}
                 >
                   <div className="theme-preview theme-preview-dark">
@@ -559,8 +471,10 @@ const SettingsPage = ({ onClose }) => {
                   )}
                 </div>
 
-                <div 
-                  className={`theme-option ${themeSettings.theme === "dim" ? "theme-option-active" : ""}`}
+                <div
+                  className={`theme-option ${
+                    themeSettings.theme === "dim" ? "theme-option-active" : ""
+                  }`}
                   onClick={() => handleThemeChange("dim")}
                 >
                   <div className="theme-preview theme-preview-dim">

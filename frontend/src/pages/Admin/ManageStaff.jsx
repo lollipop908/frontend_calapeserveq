@@ -30,20 +30,16 @@ const ManageStaff = () => {
     roleId: "",
   });
 
-  // Add loading and error states for all queries
   const { data: staffData, loading: staffLoading, error: staffError, refetch: refetchStaff } = useQuery(GET_ALL_STAFF);
   const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS);
   const { data: rolesData, loading: rolesLoading, error: rolesError } = useQuery(GET_ROLES);
 
-  // Check if any data is still loading
   const isLoading = staffLoading || departmentsLoading || rolesLoading;
   
   const hasError = staffError || departmentsError || rolesError;
 
   const [createStaff] = useMutation(CREATE_STAFF, {
     onCompleted: (data) => {
-      console.log("Staff created:", data);
-      // Update local state immediately
       setStaff(prevStaff => [...prevStaff, data.createStaff]);
       Swal.fire({
         icon: "success",
@@ -86,25 +82,23 @@ const ManageStaff = () => {
   });
 
   const [deleteStaff] = useMutation(DELETE_STAFF, {
-    onCompleted: (data) => {
-      setStaff(prevStaff => 
-        prevStaff.filter(member => member.staffId !== data.deleteStaff.staffId)
-      );
-      Swal.fire({
-        icon: "success",
-        title: "Deleted!",
-        text: "The staff member has been successfully deleted.",
-        confirmButtonColor: "#3085d6",
-      });
-    },
-    onError: (error) => {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Failed to delete staff member!",
-      });
-    },
-  });
+  onCompleted: async (data) => {
+    await refetchStaff(); 
+    Swal.fire({
+      icon: "success",
+      title: "Deleted!",
+      text: "The staff member has been successfully deleted.",
+      confirmButtonColor: "#3085d6",
+    });
+  },
+  onError: (error) => {
+    Swal.fire({
+      icon: "error",
+      title: "Oops...",
+      text: "Failed to delete staff member!",
+    });
+  },
+});
 
   useEffect(() => {
     if (staffData && staffData.staffs) {
@@ -175,26 +169,7 @@ const ManageStaff = () => {
     setShowStaffForm(true);
   };
 
-  const handleDeleteStaff = async (staffId) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "This staff member will be permanently deleted.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-    });
 
-    if (result.isConfirmed) {
-      try {
-        await deleteStaff({ variables: { staffId: parseInt(staffId) } });
-      } catch (error) {
-        console.error("Delete error:", error);
-      }
-    }
-  };
 
   const handleCancelForm = () => {
     setShowStaffForm(false);
@@ -214,7 +189,6 @@ const ManageStaff = () => {
     return `${firstName} ${lastName}`.trim() || member.staffUsername;
   };
 
-  // Loading State - Show loading for ALL queries
   if (isLoading) {
     return (
       <div className="staff-content">
@@ -226,7 +200,6 @@ const ManageStaff = () => {
     );
   }
 
-  // Error State - Show error if ANY query fails
   if (hasError) {
     const errorMessage = staffError?.message || departmentsError?.message || rolesError?.message || "Unknown error occurred";
     return (
@@ -314,15 +287,7 @@ const ManageStaff = () => {
                       >
                         <FaEdit className="btn-icon" />
                         Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStaff(member.staffId)}
-                        className="delete-btn"
-                        title="Delete Staff"
-                      >
-                        <FaTrash className="btn-icon" />
-                        Delete
-                      </button>
+                      </button>                     
                     </div>
                   </td>
                 </tr>
@@ -348,7 +313,6 @@ const ManageStaff = () => {
           )}
         </div>
 
-        {/* Add Staff Floating Button */}
         <button
           onClick={() => setShowStaffForm(true)}
           className="add-staff-floating-btn"

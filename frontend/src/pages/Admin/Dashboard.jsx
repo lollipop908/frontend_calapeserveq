@@ -12,7 +12,8 @@ import {
   FiImage,
   FiTrash2,
   FiEdit,
-  FiUpload
+  FiUpload,
+  FiDownload,
 } from "react-icons/fi";
 import { MdDashboard } from "react-icons/md";
 import { Building2 } from "lucide-react";
@@ -24,7 +25,7 @@ import ManageServices from "./ManageServices";
 import ManageProfile from "./ManageProfile";
 import ManageAds from "./ManageAds";
 import ReportsPanel from "./ReportsPanel";
-
+import Reports from "./Reports";
 import { useQuery } from "@apollo/client";
 import {
   GET_SERVICES,
@@ -43,9 +44,10 @@ const AdminDashboard = () => {
   const [findAll, setStaffList] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [services, setServices] = useState([]);
+  const [reports, setReports] = useState([]);
 
-  const { data: deptData } = useQuery(GET_DEPARTMENTS, { errorPolicy: 'all' });
-  const { data: servData } = useQuery(GET_SERVICES, { errorPolicy: 'all' });
+  const { data: deptData } = useQuery(GET_DEPARTMENTS, { errorPolicy: "all" });
+  const { data: servData } = useQuery(GET_SERVICES, { errorPolicy: "all" });
   const { data: staffData } = useQuery(GET_ALL_STAFF);
 
   useEffect(() => {
@@ -105,7 +107,7 @@ const AdminDashboard = () => {
           icon: "success",
           title: "You have logged out successfully",
           showConfirmButton: false,
-          timer: 1500, 
+          timer: 1500,
           timerProgressBar: true,
         });
       }
@@ -189,6 +191,8 @@ const AdminDashboard = () => {
         return <ManageServices services={services} setServices={setServices} />;
       case "ads":
         return <ManageAds />;
+      case "reports":
+        return <Reports departments={departments} />;
       default:
         return renderDashboard();
     }
@@ -242,7 +246,9 @@ const AdminDashboard = () => {
             </button>
 
             <button
-              className={`nav-item ${activeSection === "staff" ? "active" : ""}`}
+              className={`nav-item ${
+                activeSection === "staff" ? "active" : ""
+              }`}
               onClick={() => setActiveSection("staff")}
               title="Manage Staff"
             >
@@ -258,7 +264,9 @@ const AdminDashboard = () => {
               title="Manage Departments"
             >
               <Building2 className="nav-icon" size={20} />
-              {sidebarOpen && <span className="nav-text">Manage Departments</span>}
+              {sidebarOpen && (
+                <span className="nav-text">Manage Departments</span>
+              )}
             </button>
 
             <button
@@ -273,19 +281,31 @@ const AdminDashboard = () => {
             </button>
 
             <button
-              className={`nav-item ${
-                activeSection === "ads" ? "active" : ""
-              }`}
+              className={`nav-item ${activeSection === "ads" ? "active" : ""}`}
               onClick={() => setActiveSection("ads")}
               title="Manage Ads"
             >
               <FiImage className="nav-icon" size={20} />
               {sidebarOpen && <span className="nav-text">Manage Ads</span>}
             </button>
+            <button
+              className={`nav-item ${
+                activeSection === "reports" ? "active" : "" 
+              }`}
+              onClick={() => setActiveSection("reports")} 
+              title="Reports"
+            >
+              <FiDownload className="nav-icon" size={20} />
+              {sidebarOpen && <span className="nav-text">Download Reports</span>}
+            </button>
           </nav>
 
           <div className="sidebar-footer">
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
+            <button
+              onClick={handleLogout}
+              className="logout-btn"
+              title="Logout"
+            >
               <FiLogOut className="logout-icon" size={18} />
               {sidebarOpen && <span className="logout-text">Logout</span>}
             </button>
@@ -310,10 +330,8 @@ const AdminDashboard = () => {
               <p className="page-subtitle">
                 {activeSection === "dashboard" &&
                   "Overview of municipal operations"}
-                {activeSection === "profile" &&
-                  "Manage your account settings"}
-                {activeSection === "staff" &&
-                  "Manage staff members and roles"}
+                {activeSection === "profile" && "Manage your account settings"}
+                {activeSection === "staff" && "Manage staff members and roles"}
                 {activeSection === "departments" &&
                   "Organize departments and structure"}
                 {activeSection === "services" &&

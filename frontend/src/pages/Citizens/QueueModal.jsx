@@ -49,7 +49,6 @@ const QueueModal = ({ queueNumber, department, onClose }) => {
         Thank you for using our services!
       `;
       
-      console.log("Print Content:", printContent);
       alert("Ticket printed successfully! (Frontend simulation)");
       setIsPrinting(false);
     }, 2000);

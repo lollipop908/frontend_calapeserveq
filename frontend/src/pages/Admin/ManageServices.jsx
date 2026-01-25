@@ -33,14 +33,11 @@ const ManageServices = () => {
   const [deletingServiceId, setDeletingServiceId] = useState(null);
   const [updatingServiceId, setUpdatingServiceId] = useState(null);
 
-  // Add proper loading and error states for both queries
   const { data: servicesData, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useQuery(GET_SERVICES);
   const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS);
 
-  // Check if any data is still loading
   const isLoading = servicesLoading || departmentsLoading;
   
-  // Check if any query has errors
   const hasError = servicesError || departmentsError;
 
   const [createService, { loading: creating }] = useMutation(CREATE_SERVICE, {
@@ -57,7 +54,6 @@ const ManageServices = () => {
       },
     },
     onCompleted: (data) => {
-      // Update local state immediately
       const createdService = data?.createService;
       if (createdService) {
         setServices(prevServices => [...prevServices, createdService]);
@@ -93,7 +89,6 @@ const ManageServices = () => {
       },
     },
     onCompleted: (data) => {
-      // Update local state immediately
       const updatedService = data?.updateService;
       if (updatedService) {
         setServices(prevServices => 
@@ -127,11 +122,11 @@ const ManageServices = () => {
       __typename: "Mutation",
       deleteService: {
         __typename: "Service",
-        serviceId: null, // Will be provided when calling the mutation
+        serviceId: null, 
       },
     },
     onCompleted: (data) => {
-      // Update local state immediately
+      
       const deletedService = data?.deleteService;
       if (deletedService) {
         setServices(prevServices => 
@@ -301,7 +296,7 @@ const ManageServices = () => {
       } catch (error) {
         console.error("Delete error:", error);
         setDeletingServiceId(null);
-        // Rollback by refetching
+      
         refetchServices();
       }
     }
@@ -313,7 +308,7 @@ const ManageServices = () => {
     setNewService({ serviceName: "", departmentId: "" });
   };
 
-  // Loading State
+ 
   if (isLoading) {
     return (
       <div className="services-content">
@@ -325,7 +320,7 @@ const ManageServices = () => {
     );
   }
 
-  // Error State
+ 
   if (hasError) {
     const errorMessage = servicesError?.message || departmentsError?.message || "Unknown error occurred";
     return (
@@ -413,15 +408,7 @@ const ManageServices = () => {
                               <FaEdit className="btn-icon" />
                               {isUpdating ? "Editing..." : "Edit"}
                             </button>
-                            <button
-                              onClick={() => handleDeleteService(service.serviceId)}
-                              className="delete-btn"
-                              title="Delete Service"
-                              disabled={isProcessing}
-                            >
-                              <FaTrash className="btn-icon" />
-                              {isDeleting ? "Deleting..." : "Delete"}
-                            </button>
+                           
                           </div>
                         </div>
                       );
@@ -448,7 +435,6 @@ const ManageServices = () => {
           )}
         </div>
 
-        {/* Add Service Floating Button */}
         <button
           onClick={() => setShowServiceForm(true)}
           className="add-service-floating-btn"

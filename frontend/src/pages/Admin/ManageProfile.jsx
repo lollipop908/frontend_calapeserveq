@@ -29,20 +29,16 @@ const ManageProfile = () => {
   const [editingPassword, setEditingPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Determine staffId based on current route
-  // Since this is the Admin Settings page, it should only be accessed from /admin/dashboard
-  // Use admin-specific storage or fallback to sessionStorage
+ 
   const getAdminStaffId = () => {
-    // Check if we're on admin dashboard route
+    
     if (location.pathname.includes("/admin/dashboard")) {
-      // Check if current session role is admin
+    
       const role = sessionStorage.getItem("userRole") || localStorage.getItem("role");
       if (role === "admin") {
-        // Try admin-specific storage first
         const adminId = localStorage.getItem("adminStaffId") || sessionStorage.getItem("staffId");
         if (adminId) return parseInt(adminId, 10);
         
-        // Try to get from staffInfo
         const adminStaffInfo = sessionStorage.getItem("staffInfo") || localStorage.getItem("staffInfo");
         if (adminStaffInfo) {
           try {
@@ -55,12 +51,12 @@ const ManageProfile = () => {
           }
         }
         
-        // Fallback to generic staffId
+       
         const id = sessionStorage.getItem("staffId") || localStorage.getItem("staffId");
         if (id) return parseInt(id, 10);
       }
     }
-    // Default fallback
+
     return 1;
   };
 
@@ -207,7 +203,7 @@ const ManageProfile = () => {
       )}
 
       <div className="profile-card-wide">
-        {/* Profile Header Section */}
+        
         <div className="profile-header-section">
           <div className="avatar-container">
             <img 
@@ -233,7 +229,7 @@ const ManageProfile = () => {
         </div>
 
         <div className="profile-sections-container">
-          {/* Username Section - Read Only */}
+          
           <div className="settings-section">
             <div className="section-header">
               <div className="section-title">
@@ -250,7 +246,7 @@ const ManageProfile = () => {
             </div>
           </div>
 
-          {/* Password Section */}
+         
           <div className="settings-section">
             <div className="section-header">
               <div className="section-title">

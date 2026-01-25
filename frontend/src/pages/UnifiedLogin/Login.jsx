@@ -7,6 +7,7 @@ import logo from "/calapelogo.png";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import Swal from "sweetalert2";
+import { FaEye, FaEyeSlash } from "react-icons/fa"
 
 const Login = () => {
   const navigate = useNavigate();
@@ -87,7 +88,6 @@ const Login = () => {
         "staffId", "staffUsername", "staffInfo"
       ];
       
-      // Get all localStorage keys and remove only non-role-specific ones
       const allKeys = Object.keys(localStorage);
       allKeys.forEach(key => {
         if (!roleSpecificKeys.includes(key)) {
@@ -115,7 +115,6 @@ const Login = () => {
 
       console.log("Storing staff info:", staffInfo);
 
-      // Store current session data
       localStorage.setItem("token", access_token);
       localStorage.setItem("role", role);
 
@@ -123,7 +122,6 @@ const Login = () => {
       sessionStorage.setItem("staffInfo", JSON.stringify(staffInfo));
       sessionStorage.setItem("isLoggedIn", "true");
 
-      // Store role-specific data (NEVER overwrite staffInfo for other roles)
       if (role === "admin") {
         sessionStorage.setItem("isAdminLoggedIn", "true");
         localStorage.setItem("isAdminLoggedIn", "true");
@@ -131,16 +129,13 @@ const Login = () => {
         localStorage.setItem("adminStaffUsername", staffInfo.username);
         localStorage.setItem("adminStaffInfo", JSON.stringify(staffInfo));
         sessionStorage.setItem("staffId", staff.staffId || staffInfo.id);
-        // Don't overwrite staffInfo or staffId/staffUsername - those belong to staff role
       } else if (role === "queuestaff") {
         sessionStorage.setItem("isQueueStaffLoggedIn", "true");
         localStorage.setItem("isQueueStaffLoggedIn", "true");
         localStorage.setItem("queueStaffId", staff.staffId || staffInfo.id);
         localStorage.setItem("queueStaffUsername", staffInfo.username);
         localStorage.setItem("queueStaffInfo", JSON.stringify(staffInfo));
-        // Don't overwrite staffInfo or staffId/staffUsername - those belong to staff role
       } else {
-        // Regular staff - ONLY staff role can use staffInfo and staffId/staffUsername
         sessionStorage.setItem("isStaffLoggedIn", "true");
         localStorage.setItem("isStaffLoggedIn", "true");
         localStorage.setItem("staffId", staff.staffId || staffInfo.id);
@@ -148,8 +143,7 @@ const Login = () => {
         localStorage.setItem("staffInfo", JSON.stringify(staffInfo));
       }
 
-      // Restore other roles' data so their dashboards still work
-      // This ensures that logging in as one role doesn't lose data for other roles
+      
       if (existingAdminData?.adminStaffId) {
         localStorage.setItem("adminStaffId", existingAdminData.adminStaffId);
         if (existingAdminData.adminStaffUsername) {
@@ -303,7 +297,7 @@ const Login = () => {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? <FaEyeSlash/> : <FaEye/>}
                 </button>
               </div>
             </div>

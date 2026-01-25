@@ -13,12 +13,15 @@ import PrivateRoute from "./routes/PrivateRoute";
 import TVmonitor from "./pages/Monitor/TVmonitor";
 import QueueForm from "./pages/Citizens/QueueForm";
 import QueueStaffRoute from "./routes/QueueStaffRoute";
-
+import UtilsHome from "./Client/Home";
+import ClientQueue from "./Client/ClientQueue";
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={<UtilsHome />} />
+        <Route path="/queue" element={<ClientQueue />} />
         <Route path="/login" element={<Login />} />
         <Route path="/tv-monitor" element={<TVmonitor />} />
        

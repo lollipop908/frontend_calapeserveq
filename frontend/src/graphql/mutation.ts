@@ -133,6 +133,7 @@ export const UPDATE_SERVICE = gql`
 export const UPDATE_PASSWORD = gql`
  mutation UpdatePassword($newPassword: String!, $staffId: Float!) {
   updatePassword(newPassword: $newPassword, staffId: $staffId) {
+  staffId
     staffUsername
   }
 }

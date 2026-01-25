@@ -22,20 +22,19 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
   const [deletingDepartmentId, setDeletingDepartmentId] = useState(null);
   const [updatingDepartmentId, setUpdatingDepartmentId] = useState(null);
 
-  // Check if we're using props or local state
+ 
   const isUsingProps = propDepartments !== undefined && propSetDepartments !== undefined;
   
-  // Local state for departments if not using props
+
   const [localDepartments, setLocalDepartments] = useState([]);
   
-  // Use either props or local state
+
   const departments = isUsingProps ? propDepartments : localDepartments;
   const setDepartments = isUsingProps ? propSetDepartments : setLocalDepartments;
 
-  // Add proper loading and error states
   const { data, loading, error, refetch } = useQuery(GET_DEPARTMENTS, { 
     errorPolicy: 'all',
-    fetchPolicy: "network-first" // This ensures we always get fresh data
+    fetchPolicy: "network-first" 
   });
 
   console.log("Department Query - Loading:", loading, "Error:", error, "Data:", data);
@@ -87,7 +86,7 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
       __typename: "Mutation",
       deleteDepartment: {
         __typename: "Department",
-        departmentId: null, // Will be provided when calling the mutation
+        departmentId: null, 
       },
     },
     onCompleted: (data) => {
@@ -234,7 +233,7 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
       } catch (error) {
         console.error("Delete error:", error);
         setDeletingDepartmentId(null);
-        // Rollback by refetching
+        
         refetch();
       }
     }
@@ -246,7 +245,7 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
     setNewDepartment({ name: "", prefix: "" });
   };
 
-  // Loading State - Add console log to debug
+  
   if (loading) {
     console.log("Showing loading state...");
     return (
@@ -259,7 +258,7 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
     );
   }
 
-  // Error State
+
   if (error) {
     console.log("Showing error state:", error);
     return (
@@ -341,15 +340,7 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
                           <FaEdit className="btn-icon" />
                           {isUpdating ? "Editing..." : "Edit"}
                         </button>
-                        <button
-                          onClick={() => handleDeleteDepartment(department.departmentId)}
-                          className="delete-btn"
-                          title="Delete Department"
-                          disabled={isProcessing || deleting || updating}
-                        >
-                          <FaTrash className="btn-icon" />
-                          {isDeleting ? "Deleting..." : "Delete"}
-                        </button>
+                    
                       </div>
                     </td>
                   </tr>
@@ -377,7 +368,6 @@ const ManageDepartment = ({ departments: propDepartments, setDepartments: propSe
           )}
         </div>
 
-        {/* Add Department Floating Button */}
         <button
           onClick={() => setShowDepartmentForm(true)}
           className="add-department-floating-btn"
