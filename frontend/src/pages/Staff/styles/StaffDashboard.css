@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 :root {
   --primary-color: #4a90e2;
@@ -34,7 +34,12 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   line-height: 1.5;
   color: var(--text-primary);
   background: var(--background);
@@ -81,8 +86,12 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .notification {
@@ -197,7 +206,11 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--primary-hover)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,11 +346,12 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { 
-    opacity: 1; 
+  0%,
+  100% {
+    opacity: 1;
   }
-  50% { 
-    opacity: 0.4; 
+  50% {
+    opacity: 0.4;
   }
 }
 
@@ -608,7 +622,7 @@ body {
 }
 
 .priority-title {
- color: var(--danger-color);
+  color: var(--danger-color);
 }
 
 .priority-sub {
@@ -776,7 +790,8 @@ body {
 }
 
 /* Force display of buttons */
-.call-next-btn, .repeat-call-btn {
+.call-next-btn,
+.repeat-call-btn {
   display: flex !important;
   visibility: visible !important;
 }
@@ -785,37 +800,37 @@ body {
   .staff-panel {
     padding: 16px;
   }
-  
+
   .header {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .user-profile-btn {
     justify-content: space-between;
   }
-  
+
   .now-serving-card {
     flex-direction: column;
     padding: 20px;
   }
-  
+
   .action-buttons {
     width: 100%;
     display: flex !important;
   }
-  
+
   .call-next-btn,
   .repeat-call-btn {
     flex: 1;
     display: flex !important;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .queue-header,
   .queue-item {
     grid-template-columns: 1.5fr 1fr 1fr 1fr;
@@ -833,31 +848,50 @@ body {
   .current-number {
     font-size: 28px;
   }
-  
+
   .no-ticket-message {
     font-size: 16px;
   }
-  
+
   .stat-number {
     font-size: 24px;
   }
-  
+
   .queue-header,
   .queue-item {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
+
   .queue-col {
     padding: 6px 0;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
-  
+
   .call-next-btn,
   .repeat-call-btn {
     width: 100%;
   }
+}
+
+/* Void Button & Stats */
+.column-action-btn.void-btn {
+  background: var(--surface-hover);
+  color: var(--danger-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.column-action-btn.void-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.stat-card.void .stat-icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
 }

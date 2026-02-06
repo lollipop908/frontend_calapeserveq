@@ -9,7 +9,8 @@
   flex-direction: column;
   min-height: 100vh;
   background: #fafafa;
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
 }
 
 .queue-content {
@@ -56,7 +57,7 @@
 
 .main-layout {
   display: grid;
-  grid-template-columns: 2fr 3fr; 
+  grid-template-columns: 2fr 3fr;
   gap: 1.5rem;
   align-items: start;
   min-height: 400px;
@@ -105,14 +106,28 @@
   margin-bottom: 0.5rem;
 }
 
-.current-ticket {
+.serving-tickets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.serving-ticket-item {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   background: #3b82f6;
   border-radius: 6px;
-  flex: 1;
-  text-align: center;
+  padding: 0.5rem 1rem;
+}
+
+.counter-name-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .ticket-number {
@@ -211,7 +226,6 @@
   justify-content: center;
 }
 
-
 .ad-placeholder {
   background: #f8fafc;
   border: 2px dashed #e2e8f0;
@@ -248,10 +262,11 @@
 }
 
 /* Old specific rules replaced by .ad-media generic class usage in JSX */
-.ad-card img, video.ad-media {
-  width: 100%;     
+.ad-card img,
+video.ad-media {
+  width: 100%;
   height: 100%;
-  object-fit: contain; 
+  object-fit: contain;
 }
 
 .ad-content {
@@ -278,15 +293,15 @@
     grid-template-columns: 280px 1fr;
     gap: 1rem;
   }
-  
+
   .now-serving-panel {
     height: 140px;
   }
-  
+
   .previous-panel {
     height: 180px;
   }
-  
+
   .ticket-number {
     font-size: 1.8rem;
   }
@@ -302,47 +317,47 @@
     gap: 0.5rem;
     align-items: flex-start;
   }
-  
+
   .department-select {
     font-size: 0.9rem;
     min-width: 160px;
     padding: 0.3rem 0.6rem;
   }
-  
+
   .time-display {
     font-size: 0.9rem;
     align-self: flex-end;
   }
-  
+
   .main-layout {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .queue-cards {
     flex-direction: row;
     gap: 0.8rem;
   }
-  
+
   .now-serving-panel,
   .previous-panel {
     height: 120px;
     padding: 0.8rem;
   }
-  
+
   .ticket-number {
     font-size: 1.5rem;
   }
-  
+
   .prev-number {
     font-size: 1rem;
   }
-  
+
   .ad-section {
     min-height: 250px;
     order: -1;
   }
-  
+
   .ad-placeholder {
     min-height: 250px;
   }
@@ -352,32 +367,32 @@
   .department-section {
     align-items: stretch;
   }
-  
+
   .time-display {
     align-self: center;
   }
-  
+
   .queue-cards {
     flex-direction: column;
   }
-  
+
   .now-serving-panel,
   .previous-panel {
     height: 100px;
   }
-  
+
   .ticket-number {
     font-size: 1.3rem;
   }
-  
+
   .prev-number {
     font-size: 0.9rem;
   }
-  
+
   .ad-section {
     min-height: 200px;
   }
-  
+
   .ad-placeholder {
     min-height: 200px;
   }

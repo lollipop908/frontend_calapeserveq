@@ -9,7 +9,7 @@ export const LOGIN = gql`
       staff {
         staffId
         staffUsername
-        staffFirstname   
+        staffFirstname
         staffLastname
         department {
           departmentId
@@ -54,15 +54,6 @@ export const DELETE_DEPARTMENT = gql`
 export const CREATE_STAFF = gql`
   mutation CreateStaff($createStaffInput: CreateStaffInput!) {
     createStaff(createStaffInput: $createStaffInput) {
-      role {
-        roleId
-        roleName
-      }
-      departmentId
-      department {
-        departmentName
-        departmentId
-      }
       staffId
       staffUsername
       staffFirstname
@@ -76,6 +67,10 @@ export const UPDATE_STAFF = gql`
       staffId
       staffFirstname
       staffLastname
+      counter {
+        counterId
+        counterName
+      }
     }
   }
 `;
@@ -131,12 +126,12 @@ export const UPDATE_SERVICE = gql`
   }
 `;
 export const UPDATE_PASSWORD = gql`
- mutation UpdatePassword($newPassword: String!, $staffId: Float!) {
-  updatePassword(newPassword: $newPassword, staffId: $staffId) {
-  staffId
-    staffUsername
+  mutation UpdatePassword($newPassword: String!, $staffId: Float!) {
+    updatePassword(newPassword: $newPassword, staffId: $staffId) {
+      staffId
+      staffUsername
+    }
   }
-}
 `;
 
 export const DELETE_SERVICE = gql`
@@ -164,6 +159,75 @@ export const CREATE_ROLE = gql`
   mutation CreateRole($createRoleInput: CreateRoleInput!) {
     createRole(createRoleInput: $createRoleInput) {
       roleName
+    }
+  }
+`;
+
+export const CALL_NEXT_REPEAT = gql`
+  mutation CallNextRepeat($queueId: Int!) {
+    callNextRepeat(queueId: $queueId) {
+      queueId
+      status
+      repeatCount
+    }
+  }
+`;
+
+export const CALL_NEXT = gql`
+  mutation CallNext(
+    $staffId: Int!
+    $counterId: Int!
+    $departmentId: Int!
+    $priority: String!
+  ) {
+    callNext(
+      staff: {
+        staffId: $staffId
+        counterId: $counterId
+        departmentId: $departmentId
+        priority: $priority
+      }
+    ) {
+      queueId
+      number
+      status
+      priority
+    }
+  }
+`;
+
+export const CREATE_COUNTER = gql`
+  mutation CreateCounter($createCounterInput: CreateCounterInput!) {
+    createCounter(createCounterInput: $createCounterInput) {
+      counterId
+      counterName
+      department {
+        departmentId
+        departmentName
+        prefix
+      }
+    }
+  }
+`;
+
+export const UPDATE_COUNTER = gql`
+  mutation UpdateCounter($updateCounterInput: UpdateCounterInput!) {
+    updateCounter(updateCounterInput: $updateCounterInput) {
+      counterId
+      counterName
+      department {
+        departmentId
+        departmentName
+        prefix
+      }
+    }
+  }
+`;
+
+export const DELETE_COUNTER = gql`
+  mutation RemoveCounter($removeCounterId: Int!) {
+    removeCounter(id: $removeCounterId) {
+      counterId
     }
   }
 `;

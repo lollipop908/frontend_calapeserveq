@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 import { useQuery, gql } from "@apollo/client";
 import "./styles/TVmonitor.css";
 import Header from "../../components/Header/Header";
@@ -19,30 +20,30 @@ const GET_ADS = gql`
 
 const TVMonitor = () => {
   const [currentTime, setCurrentTime] = useState("");
-  const [currentTicket, setCurrentTicket] = useState(null);
   const [nextRegularTickets, setNextRegularTickets] = useState([]);
   const [nextPriorityTickets, setNextPriorityTickets] = useState([]);
   const [departmentId, setDepartmentId] = useState(null);
   const [departmentName, setDepartmentName] = useState("");
   const [departmentPrefix, setDepartmentPrefix] = useState("");
-  const [currentAdIndex, setCurrentAdIndex] = useState(0); // For slideshow
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
   const lastUpdateRef = useRef(Date.now());
+  const videoRef = useRef(null);
 
-  // Departments
   const { data: deptData, loading: deptLoading } = useQuery(GET_DEPARTMENTS, {
     fetchPolicy: "cache-and-network",
   });
 
-  // Queues
-  const { data: queueData, loading: queueLoading, refetch } = useQuery(
-    GET_QUEUES_BY_DEPARTMENT,
-    {
-      variables: { departmentId },
-      fetchPolicy: "network-only",
-      skip: !departmentId,
-      pollInterval: 3000,
-    }
-  );
+  const {
+    data: queueData,
+    loading: queueLoading,
+    refetch,
+  } = useQuery(GET_QUEUES_BY_DEPARTMENT, {
+    variables: { departmentId },
+    fetchPolicy: "network-only",
+    skip: !departmentId,
+    pollInterval: 3000,
+  });
 
   // Ads
   const { data: adsData, loading: adsLoading } = useQuery(GET_ADS);
@@ -78,14 +79,16 @@ const TVMonitor = () => {
     if (!departmentId) return;
 
     const eventSource = new EventSource(
-      "https://queuecalape.onrender.com/queue/stream"
+      "https://queuecalape.onrender.com/queue/stream",
     );
 
     eventSource.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data);
         const eventData = parsed.data || parsed;
-        const eventDept = String(eventData.department || "").trim().toUpperCase();
+        const eventDept = String(eventData.department || "")
+          .trim()
+          .toUpperCase();
         const matchPrefix = String(departmentPrefix).trim().toUpperCase();
         const matchName = String(departmentName).trim().toUpperCase();
 
@@ -104,7 +107,6 @@ const TVMonitor = () => {
     return () => eventSource.close();
   }, [departmentId, departmentPrefix, departmentName, refetch]);
 
-  // Time update
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -112,22 +114,27 @@ const TVMonitor = () => {
         now.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
-          hour12: false,
-        })
+          hour12: true,
+        }),
       );
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Queue processing
+  const [servingTickets, setServingTickets] = useState([]);
+
+  // ... (lines 126-127)
   useEffect(() => {
     if (queueData?.QueueByDepartment) {
       const queues = queueData.QueueByDepartment;
 
-      const serving = queues.find((q) => q.status.toUpperCase() === "SERVING");
-      setCurrentTicket(
-        serving ? `${serving.department?.prefix || departmentPrefix}-${serving.number}` : null
-      );
+      const serving = queues
+        .filter((q) => q.status.toUpperCase() === "SERVING")
+        .map((q) => ({
+          ticket: `${q.department?.prefix || departmentPrefix}-${q.number}`,
+          counterName: q.counter?.counterName || "Unknown",
+        }));
+      setServingTickets(serving);
 
       const waiting = queues
         .filter((q) => q.status.toUpperCase() === "WAITING")
@@ -135,13 +142,13 @@ const TVMonitor = () => {
 
       // Regular tickets
       const regular = waiting
-        .filter(q => q.priority.toLowerCase() === 'regular')
+        .filter((q) => q.priority.toLowerCase() === "regular")
         .slice(0, 3)
         .map((q) => `${q.department?.prefix || departmentPrefix}-${q.number}`);
 
       // Priority tickets (Senior, PWD, Pregnant)
       const priority = waiting
-        .filter(q => q.priority.toLowerCase() !== 'regular')
+        .filter((q) => q.priority.toLowerCase() !== "regular")
         .slice(0, 3)
         .map((q) => `${q.department?.prefix || departmentPrefix}-${q.number}`);
 
@@ -154,7 +161,7 @@ const TVMonitor = () => {
   const handleDepartmentChange = (e) => {
     const selectedId = parseInt(e.target.value);
     const selectedDept = deptData.departments.find(
-      (d) => d.departmentId === selectedId
+      (d) => d.departmentId === selectedId,
     );
     if (selectedDept) {
       setDepartmentId(selectedId);
@@ -220,6 +227,14 @@ const TVMonitor = () => {
     }
   }, [visibleAds, currentAdIndex]);
 
+  // Toggle audio
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+    }
+  };
+
   return (
     <div className="queue-container">
       <Header />
@@ -247,18 +262,26 @@ const TVMonitor = () => {
         </div>
 
         <div className="main-layout">
-          {/* Queue Section */}
           <div className="queue-section">
             <div className="queue-cards">
               <div className="now-serving-panel">
                 <div className="label">Now Serving</div>
-                <div className="current-ticket">
+                <div className="serving-tickets-list">
                   {queueLoading ? (
                     <div className="ticket-placeholder">Loading...</div>
-                  ) : currentTicket ? (
-                    <div className="ticket-number">{currentTicket}</div>
+                  ) : servingTickets.length > 0 ? (
+                    servingTickets.map((item, idx) => (
+                      <div key={idx} className="serving-ticket-item">
+                        <div className="ticket-number">{item.ticket}</div>
+                        <div className="counter-name-label">
+                          {item.counterName}
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="ticket-placeholder">Waiting for queue...</div>
+                    <div className="ticket-placeholder">
+                      Waiting for queue...
+                    </div>
                   )}
                 </div>
               </div>
@@ -290,7 +313,10 @@ const TVMonitor = () => {
                     <div className="previous-tickets">
                       {nextPriorityTickets.length > 0 ? (
                         nextPriorityTickets.map((ticket, index) => (
-                          <div key={index} className="previous-ticket priority-ticket">
+                          <div
+                            key={index}
+                            className="previous-ticket priority-ticket"
+                          >
                             <div className="prev-number">{ticket}</div>
                           </div>
                         ))
@@ -304,43 +330,84 @@ const TVMonitor = () => {
             </div>
           </div>
 
-       {/* Ads Section */}
-       {showAdsGlobally && (
-          <div className="ad-section">
-            {adsLoading || visibleAds.length === 0 ? (
-              <div className="ad-placeholder">
-                <div className="ad-content">
-                  <span className="ad-text">Advertisement</span>
-                  <span className="coming-soon">Coming Soon</span>
+          {/* Ads Section */}
+          {showAdsGlobally && (
+            <div className="ad-section">
+              {adsLoading || visibleAds.length === 0 ? (
+                <div className="ad-placeholder">
+                  <div className="ad-content">
+                    <span className="ad-text">Advertisement</span>
+                    <span className="coming-soon">Coming Soon</span>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="ad-card">
+              ) : (
+                <div className="ad-card" style={{ position: "relative" }}>
+                  {/* IMAGE PREVIEW */}
+                  {visibleAds[currentAdIndex] &&
+                    visibleAds[currentAdIndex].mimetype?.startsWith(
+                      "image/",
+                    ) && (
+                      <img
+                        src={getImageUrl(visibleAds[currentAdIndex].filepath)}
+                        alt={visibleAds[currentAdIndex].filename}
+                        className="ad-media"
+                      />
+                    )}
 
-                {/* IMAGE PREVIEW */}
-                {visibleAds[currentAdIndex] && visibleAds[currentAdIndex].mimetype?.startsWith("image/") && (
-                  <img
-                    src={getImageUrl(visibleAds[currentAdIndex].filepath)}
-                    alt={visibleAds[currentAdIndex].filename}
-                    className="ad-media"
-                  />
-                )}
+                  {/* VIDEO PREVIEW */}
+                  {visibleAds[currentAdIndex] &&
+                    visibleAds[currentAdIndex].mimetype?.startsWith(
+                      "video/",
+                    ) && (
+                      <video
+                        ref={videoRef}
+                        src={getImageUrl(visibleAds[currentAdIndex].filepath)}
+                        className="ad-media"
+                        autoPlay
+                        loop
+                        muted={isMuted}
+                      />
+                    )}
 
-                {/* VIDEO PREVIEW */}
-                {visibleAds[currentAdIndex] && visibleAds[currentAdIndex].mimetype?.startsWith("video/") && (
-                  <video
-                    src={getImageUrl(visibleAds[currentAdIndex].filepath)}
-                    className="ad-media"
-                    autoPlay
-                    loop
-                    muted
-                  />
-                )}
-
-              </div>
-            )}
-          </div>
-       )}
+                  {/* Audio Toggle Button */}
+                  <button
+                    onClick={toggleMute}
+                    className="audio-toggle-btn"
+                    style={{
+                      position: "absolute",
+                      bottom: "20px",
+                      right: "20px",
+                      background: "rgba(0,0,0,0.6)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "40px",
+                      height: "40px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      zIndex: 10,
+                      transition: "background 0.3s",
+                    }}
+                    onMouseOver={(e) =>
+                      (e.target.style.background = "rgba(0,0,0,0.8)")
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.background = "rgba(0,0,0,0.6)")
+                    }
+                    title={isMuted ? "Unmute" : "Mute"}
+                  >
+                    {isMuted ? (
+                      <FaVolumeMute size={20} />
+                    ) : (
+                      <FaVolumeUp size={20} />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <Footer />

@@ -14,6 +14,7 @@ import {
   FiEdit,
   FiUpload,
   FiDownload,
+  FiMonitor,
 } from "react-icons/fi";
 import { MdDashboard } from "react-icons/md";
 import { Building2 } from "lucide-react";
@@ -24,6 +25,7 @@ import ManageStaff from "./ManageStaff";
 import ManageServices from "./ManageServices";
 import ManageProfile from "./ManageProfile";
 import ManageAds from "./ManageAds";
+import ManageCounter from "./ManageCounter";
 import ReportsPanel from "./ReportsPanel";
 import Reports from "./Reports";
 import { useQuery } from "@apollo/client";
@@ -31,6 +33,7 @@ import {
   GET_SERVICES,
   GET_DEPARTMENTS,
   GET_ALL_STAFF,
+  GET_COUNTERS,
 } from "../../graphql/query";
 
 import logo from "/calapelogo.png";
@@ -44,11 +47,13 @@ const AdminDashboard = () => {
   const [findAll, setStaffList] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [services, setServices] = useState([]);
+  const [counters, setCounters] = useState([]);
   const [reports, setReports] = useState([]);
 
   const { data: deptData } = useQuery(GET_DEPARTMENTS, { errorPolicy: "all" });
   const { data: servData } = useQuery(GET_SERVICES, { errorPolicy: "all" });
   const { data: staffData } = useQuery(GET_ALL_STAFF);
+  const { data: counterData } = useQuery(GET_COUNTERS, { errorPolicy: "all" });
 
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("isAdminLoggedIn");
@@ -88,6 +93,12 @@ const AdminDashboard = () => {
       setStaffList(staffData.staffs);
     }
   }, [staffData]);
+
+  useEffect(() => {
+    if (counterData && counterData.counters) {
+      setCounters(counterData.counters);
+    }
+  }, [counterData]);
 
   const handleLogout = () => {
     Swal.fire({
@@ -189,6 +200,13 @@ const AdminDashboard = () => {
         );
       case "services":
         return <ManageServices services={services} setServices={setServices} />;
+      case "counters":
+        return (
+          <ManageCounter
+            counters={counters}
+            setCounters={setCounters}
+          />
+        );
       case "ads":
         return <ManageAds />;
       case "reports":
@@ -281,6 +299,17 @@ const AdminDashboard = () => {
             </button>
 
             <button
+              className={`nav-item ${
+                activeSection === "counters" ? "active" : ""
+              }`}
+              onClick={() => setActiveSection("counters")}
+              title="Manage Counters"
+            >
+              <FiMonitor className="nav-icon" size={20} />
+              {sidebarOpen && <span className="nav-text">Manage Counters</span>}
+            </button>
+
+            <button
               className={`nav-item ${activeSection === "ads" ? "active" : ""}`}
               onClick={() => setActiveSection("ads")}
               title="Manage Ads"
@@ -325,6 +354,7 @@ const AdminDashboard = () => {
                 {activeSection === "staff" && "Staff Management"}
                 {activeSection === "departments" && "Department Management"}
                 {activeSection === "services" && "Services Management"}
+                {activeSection === "counters" && "Counter Management"}
                 {activeSection === "ads" && "Advertisement Management"}
               </h1>
               <p className="page-subtitle">
@@ -336,6 +366,8 @@ const AdminDashboard = () => {
                   "Organize departments and structure"}
                 {activeSection === "services" &&
                   "Manage municipal services and offerings"}
+                {activeSection === "counters" &&
+                  "Manage service counters and their departments"}
                 {activeSection === "ads" &&
                   "Upload and manage advertisements for TV monitors"}
               </p>

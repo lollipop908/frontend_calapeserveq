@@ -48,6 +48,78 @@ const DELETE_AD = gql`
 
 
 
+
+const AdItem = ({ ad, getImageUrl, selectedAds, toggleAdSelection, handleDelete }) => {
+  const [resolution, setResolution] = useState(null);
+
+  return (
+    <div className="ad-card">
+      <div className="ad-preview">
+        {ad.mimetype?.startsWith("image/") && (
+          <img
+            src={getImageUrl(ad.filepath)}
+            alt={ad.filename}
+            onLoad={(e) => setResolution(`${e.target.naturalWidth} x ${e.target.naturalHeight}`)}
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "flex";
+            }}
+          />
+        )}
+
+        {ad.mimetype?.startsWith("video/") && (
+          <video
+            src={getImageUrl(ad.filepath)}
+            controls
+            onLoadedMetadata={(e) => setResolution(`${e.target.videoWidth} x ${e.target.videoHeight}`)}
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "flex";
+            }}
+          />
+        )}
+
+        <div className="file-placeholder" style={{ display: "none" }}>
+          <span>{ad.mimetype?.startsWith("video/") ? "🎥" : "📄"}</span>
+          <span>Preview failed to load</span>
+        </div>
+      </div>
+
+      <div className="ad-info">
+        <p className="ad-filename">{ad.filename}</p>
+        <p className="ad-meta">
+          {ad.mimetype} • {new Date(ad.createdAt).toLocaleDateString()}
+        </p>
+        {resolution && (
+             <p className="ad-resolution" style={{ fontSize: '0.85rem', color: '#555', marginTop: '5px', fontWeight: '500' }}>
+               Dimensions: {resolution} px
+             </p>
+        )}
+      </div>
+
+      <div className="ad-actions">
+        <label className="tv-checkbox">
+          <input
+            type="checkbox"
+            checked={selectedAds.includes(String(ad.id))}
+            onChange={() => toggleAdSelection(ad.id)}
+          />
+          Show on TV
+        </label>
+
+        <button
+          onClick={() => handleDelete(ad.id, ad.filename)}
+          className="btn-delete"
+          title="Delete"
+          style={{ color: "red", border: "none", background: "none", cursor: "pointer", fontSize: "1.2rem" }}
+        >
+          <FaTrash />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ManageAds = () => {
   const [selectedAds, setSelectedAds] = useState(() => {
     const saved = localStorage.getItem("tv_selected_ad_ids");
@@ -366,68 +438,17 @@ const ManageAds = () => {
               </p>
             </div>
             <div className="ads-grid">
-
-  {data?.ads?.map((ad) => (
-    <div key={ad.id} className="ad-card">
-      <div className="ad-preview">
-
-        {ad.mimetype?.startsWith("image/") && (
-          <img
-            src={getImageUrl(ad.filepath)}
-            alt={ad.filename}
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextSibling.style.display = "flex";
-            }}
-          />
-        )}
-
-        {ad.mimetype?.startsWith("video/") && (
-          <video
-            src={getImageUrl(ad.filepath)}
-            controls
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextSibling.style.display = "flex";
-            }}
-          />
-        )}
-
-        <div className="file-placeholder" style={{ display: "none" }}>
-          <span>{ad.mimetype?.startsWith("video/") ? "🎥" : "📄"}</span>
-          <span>Preview failed to load</span>
-        </div>
-      </div>
-
-      <div className="ad-info">
-        <p className="ad-filename">{ad.filename}</p>
-        <p className="ad-meta">
-          {ad.mimetype} • {new Date(ad.createdAt).toLocaleDateString()}
-        </p>
-      </div>
-
-     <div className="ad-actions">
-  <label className="tv-checkbox">
-    <input
-      type="checkbox"
-      checked={selectedAds.includes(String(ad.id))}
-      onChange={() => toggleAdSelection(ad.id)}
-    />
-    Show on TV
-  </label>
-
-  <button
-    onClick={() => handleDelete(ad.id, ad.filename)}
-    className="btn-delete"
-    title="Delete"
-    style={{ color: "red", border: "none", background: "none", cursor: "pointer", fontSize: "1.2rem" }}
-  >
-    <FaTrash />
-  </button>
-</div>
-    </div>
-  ))}
-</div>
+              {data?.ads?.map((ad) => (
+                <AdItem
+                  key={ad.id}
+                  ad={ad}
+                  getImageUrl={getImageUrl}
+                  selectedAds={selectedAds}
+                  toggleAdSelection={toggleAdSelection}
+                  handleDelete={handleDelete}
+                />
+              ))}
+            </div>
           </>
         )}
       </div>

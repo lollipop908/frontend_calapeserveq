@@ -6,13 +6,19 @@ import {
   UPDATE_STAFF,
   DELETE_STAFF,
 } from "../../graphql/mutation";
-import { GET_ALL_STAFF, GET_DEPARTMENTS, GET_ROLES } from "../../graphql/query";
+import {
+  GET_ALL_STAFF,
+  GET_DEPARTMENTS,
+  GET_ROLES,
+  GET_COUNTERS,
+} from "../../graphql/query";
 import {
   FaPlus,
   FaEdit,
   FaTrash,
   FaTimes,
   FaUserFriends,
+  FaDesktop,
 } from "react-icons/fa";
 import { IoMdSettings } from "react-icons/io";
 import { HiUser } from "react-icons/hi";
@@ -28,19 +34,42 @@ const ManageStaff = () => {
     username: "",
     departmentId: "",
     roleId: "",
+    counterId: "",
   });
 
-  const { data: staffData, loading: staffLoading, error: staffError, refetch: refetchStaff } = useQuery(GET_ALL_STAFF);
-  const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS);
-  const { data: rolesData, loading: rolesLoading, error: rolesError } = useQuery(GET_ROLES);
+  const {
+    data: staffData,
+    loading: staffLoading,
+    error: staffError,
+    refetch: refetchStaff,
+  } = useQuery(GET_ALL_STAFF, {
+    errorPolicy: "all",
+  });
+  const {
+    data: departmentsData,
+    loading: departmentsLoading,
+    error: departmentsError,
+  } = useQuery(GET_DEPARTMENTS);
+  const {
+    data: rolesData,
+    loading: rolesLoading,
+    error: rolesError,
+  } = useQuery(GET_ROLES);
+  const {
+    data: countersData,
+    loading: countersLoading,
+    error: countersError,
+  } = useQuery(GET_COUNTERS, { errorPolicy: "all" });
 
-  const isLoading = staffLoading || departmentsLoading || rolesLoading;
-  
-  const hasError = staffError || departmentsError || rolesError;
+  const isLoading =
+    staffLoading || departmentsLoading || rolesLoading || countersLoading;
+
+  const hasError =
+    staffError || departmentsError || rolesError || countersError;
 
   const [createStaff] = useMutation(CREATE_STAFF, {
-    onCompleted: (data) => {
-      setStaff(prevStaff => [...prevStaff, data.createStaff]);
+    onCompleted: async (data) => {
+      await refetchStaff();
       Swal.fire({
         icon: "success",
         title: "Staff member created!",
@@ -59,12 +88,8 @@ const ManageStaff = () => {
   });
 
   const [updateStaff] = useMutation(UPDATE_STAFF, {
-    onCompleted: (data) => {
-      setStaff(prevStaff => 
-        prevStaff.map(member => 
-          member.staffId === data.updateStaff.staffId ? data.updateStaff : member
-        )
-      );
+    onCompleted: async (data) => {
+      await refetchStaff();
       Swal.fire({
         icon: "success",
         title: "Staff member updated!",
@@ -73,32 +98,33 @@ const ManageStaff = () => {
       });
     },
     onError: (error) => {
+      console.error("Update staff error:", error);
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Failed to update staff member!",
+        text: error.message || "Failed to update staff member!",
       });
     },
   });
 
   const [deleteStaff] = useMutation(DELETE_STAFF, {
-  onCompleted: async (data) => {
-    await refetchStaff(); 
-    Swal.fire({
-      icon: "success",
-      title: "Deleted!",
-      text: "The staff member has been successfully deleted.",
-      confirmButtonColor: "#3085d6",
-    });
-  },
-  onError: (error) => {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: "Failed to delete staff member!",
-    });
-  },
-});
+    onCompleted: async (data) => {
+      await refetchStaff();
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "The staff member has been successfully deleted.",
+        confirmButtonColor: "#3085d6",
+      });
+    },
+    onError: (error) => {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to delete staff member!",
+      });
+    },
+  });
 
   useEffect(() => {
     if (staffData && staffData.staffs) {
@@ -108,20 +134,34 @@ const ManageStaff = () => {
 
   const filteredRoles =
     rolesData?.roles?.filter(
-      (role) => role.roleName.toLowerCase() !== "admin"
+      (role) => role.roleName.toLowerCase() !== "admin",
     ) || [];
+
+  // Filter counters based on selected department
+  const filteredCounters = newStaff.departmentId
+    ? countersData?.counters?.filter(
+        (counter) =>
+          counter.department?.departmentId === parseInt(newStaff.departmentId),
+      ) || []
+    : [];
 
   const handleAddStaff = async (e) => {
     e.preventDefault();
 
     if (editingStaff) {
       try {
+        const selectedCounter = filteredCounters.find(
+          (c) => c.counterId === parseInt(newStaff.counterId),
+        );
         await updateStaff({
           variables: {
             updateStaffInput: {
               staffId: editingStaff.staffId,
               staffFirstname: newStaff.firstName,
               staffLastname: newStaff.lastName,
+              counterId: newStaff.counterId
+                ? parseInt(newStaff.counterId)
+                : null,
             },
           },
         });
@@ -131,6 +171,9 @@ const ManageStaff = () => {
       setEditingStaff(null);
     } else {
       try {
+        const selectedCounter = filteredCounters.find(
+          (c) => c.counterId === parseInt(newStaff.counterId),
+        );
         await createStaff({
           variables: {
             createStaffInput: {
@@ -139,6 +182,10 @@ const ManageStaff = () => {
               staffUsername: newStaff.username,
               roleId: parseInt(newStaff.roleId),
               departmentId: parseInt(newStaff.departmentId),
+              counterId: newStaff.counterId
+                ? parseInt(newStaff.counterId)
+                : null,
+              counterName: selectedCounter ? selectedCounter.counterName : "",
             },
           },
         });
@@ -153,6 +200,7 @@ const ManageStaff = () => {
       username: "",
       departmentId: "",
       roleId: "",
+      counterId: "",
     });
     setShowStaffForm(false);
   };
@@ -165,11 +213,10 @@ const ManageStaff = () => {
       username: staffMember.staffUsername,
       departmentId: staffMember.department?.departmentId?.toString() || "",
       roleId: staffMember.role?.roleId?.toString() || "",
+      counterId: staffMember.counter?.counterId?.toString() || "",
     });
     setShowStaffForm(true);
   };
-
-
 
   const handleCancelForm = () => {
     setShowStaffForm(false);
@@ -180,6 +227,7 @@ const ManageStaff = () => {
       username: "",
       departmentId: "",
       roleId: "",
+      counterId: "",
     });
   };
 
@@ -201,7 +249,11 @@ const ManageStaff = () => {
   }
 
   if (hasError) {
-    const errorMessage = staffError?.message || departmentsError?.message || rolesError?.message || "Unknown error occurred";
+    const errorMessage =
+      staffError?.message ||
+      departmentsError?.message ||
+      rolesError?.message ||
+      "Unknown error occurred";
     return (
       <div className="staff-content">
         <div className="error-message">
@@ -245,6 +297,12 @@ const ManageStaff = () => {
                 </th>
                 <th>
                   <div className="th-content">
+                    <FaDesktop className="th-icon" />
+                    Counter
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
                     <IoMdSettings className="th-icon" />
                     Actions
                   </div>
@@ -278,6 +336,11 @@ const ManageStaff = () => {
                       {member.role?.roleName || "N/A"}
                     </span>
                   </td>
+                  <td className="counter-cell">
+                    <span className="counter-badge">
+                      {member.counter?.counterName || "N/A"}
+                    </span>
+                  </td>
                   <td className="actions-cell">
                     <div className="actions">
                       <button
@@ -287,7 +350,7 @@ const ManageStaff = () => {
                       >
                         <FaEdit className="btn-icon" />
                         Edit
-                      </button>                     
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -370,12 +433,15 @@ const ManageStaff = () => {
                         setNewStaff({
                           ...newStaff,
                           departmentId: e.target.value,
+                          counterId: "", // Reset counter when department changes
                         })
                       }
                       required
                     >
-                      <option value=""disabled>Select Department </option>
-                      
+                      <option value="" disabled>
+                        Select Department{" "}
+                      </option>
+
                       {departmentsData?.departments?.map((dept) => (
                         <option
                           key={dept.departmentId}
@@ -392,7 +458,12 @@ const ManageStaff = () => {
                     <select
                       value={newStaff.roleId}
                       onChange={(e) =>
-                        setNewStaff({ ...newStaff, roleId: e.target.value })
+                        setNewStaff({
+                          ...newStaff,
+                          roleId: e.target.value,
+                          counterId:
+                            e.target.value !== "2" ? "" : newStaff.counterId, // Reset counter if not Staff role
+                        })
                       }
                       required
                     >
@@ -419,6 +490,132 @@ const ManageStaff = () => {
                       required
                     />
                   </div>
+
+                  {newStaff.roleId === "2" && (
+                    <div className="form-group">
+                      <label>Counter (Optional)</label>
+                      <select
+                        value={newStaff.counterId}
+                        onChange={(e) =>
+                          setNewStaff({
+                            ...newStaff,
+                            counterId: e.target.value,
+                          })
+                        }
+                        disabled={!newStaff.departmentId}
+                      >
+                        <option value="">
+                          {newStaff.departmentId
+                            ? "Select Counter (Optional)"
+                            : "Select Department First"}
+                        </option>
+                        {filteredCounters.map((counter) => (
+                          <option
+                            key={counter.counterId}
+                            value={counter.counterId}
+                          >
+                            {counter.counterName}
+                          </option>
+                        ))}
+                      </select>
+                      {!newStaff.departmentId && (
+                        <small className="form-help">
+                          Please select a department first to see available
+                          counters
+                        </small>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {editingStaff && (
+                <>
+                  <div className="form-group">
+                    <label>Department</label>
+                    <select
+                      value={newStaff.departmentId}
+                      onChange={(e) =>
+                        setNewStaff({
+                          ...newStaff,
+                          departmentId: e.target.value,
+                          counterId: "", // Reset counter when department changes
+                        })
+                      }
+                      disabled
+                    >
+                      <option value={newStaff.departmentId}>
+                        {departmentsData?.departments?.find(
+                          (dept) =>
+                            dept.departmentId ===
+                            parseInt(newStaff.departmentId),
+                        )?.departmentName || "N/A"}
+                      </option>
+                    </select>
+                    <small className="form-help">
+                      Department cannot be changed after creation
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Role</label>
+                    <select
+                      value={newStaff.roleId}
+                      onChange={(e) =>
+                        setNewStaff({
+                          ...newStaff,
+                          roleId: e.target.value,
+                          counterId:
+                            e.target.value !== "2" ? "" : newStaff.counterId, // Reset counter if not Staff role
+                        })
+                      }
+                      disabled
+                    >
+                      <option value={newStaff.roleId}>
+                        {rolesData?.roles?.find(
+                          (role) => role.roleId === parseInt(newStaff.roleId),
+                        )?.roleName || "N/A"}
+                      </option>
+                    </select>
+                    <small className="form-help">
+                      Role cannot be changed after creation
+                    </small>
+                  </div>
+
+                  {newStaff.roleId === "2" && (
+                    <div className="form-group">
+                      <label>Counter (Optional)</label>
+                      <select
+                        value={newStaff.counterId}
+                        onChange={(e) =>
+                          setNewStaff({
+                            ...newStaff,
+                            counterId: e.target.value,
+                          })
+                        }
+                        disabled={!newStaff.departmentId}
+                      >
+                        <option value="">
+                          {newStaff.departmentId
+                            ? "Select Counter (Optional)"
+                            : "No Department Selected"}
+                        </option>
+                        {filteredCounters.map((counter) => (
+                          <option
+                            key={counter.counterId}
+                            value={counter.counterId}
+                          >
+                            {counter.counterName}
+                          </option>
+                        ))}
+                      </select>
+                      {!newStaff.departmentId && (
+                        <small className="form-help">
+                          No department selected
+                        </small>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 

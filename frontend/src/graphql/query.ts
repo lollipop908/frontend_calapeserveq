@@ -22,19 +22,27 @@ export const GET_DEPARTMENTS = gql`
 `;
 export const GET_ALL_STAFF = gql`
   query Query {
-  staffs {
-  staffId
-    department {
-      departmentName
-    }
-    staffFirstname
-    staffLastname
-    role {
-      roleName
+    staffs {
+      staffId
+      staffUsername
+      staffFirstname
+      staffLastname
+      department {
+        departmentId
+        departmentName
+      }
+      role {
+        roleId
+        roleName
+      }
+      counter {
+        counterId
+        counterName
+      }
     }
   }
-}
 `;
+
 export const GET_STAFF = gql`
   query Staff($staffId: Int!) {
     staff(staffId: $staffId) {
@@ -53,9 +61,8 @@ export const GET_ADMIN_PROFILE = gql`
       staffFirstname
       staffLastname
       staffUsername
-      
-      }
     }
+  }
 `;
 
 export const GET_STAFF_PROFILE = gql`
@@ -64,9 +71,13 @@ export const GET_STAFF_PROFILE = gql`
       staffId
       staffFirstname
       staffLastname
-      staffUsername      
+      staffUsername
+      counter {
+        counterId
+        counterName
       }
     }
+  }
 `;
 
 export const GET_QUEUESTAFF_PROFILE = gql`
@@ -79,7 +90,6 @@ export const GET_QUEUESTAFF_PROFILE = gql`
     }
   }
 `;
-
 
 export const GET_SERVICES = gql`
   query Services {
@@ -99,7 +109,8 @@ export const GET_QUEUES_BY_DEPARTMENT = gql`
       queueId
       number
       priority
-      status  
+      status
+      repeatCount
       createdAt
       department {
         departmentId
@@ -128,12 +139,25 @@ export const GET_ALL_QUEUES_DEPARTMENT = gql`
   }
 `;
 
-
 export const GET_ROLES = gql`
   query GetAllRoles {
     roles {
       roleId
       roleName
+    }
+  }
+`;
+
+export const GET_COUNTERS = gql`
+  query GetCounters {
+    counters {
+      counterId
+      counterName
+      department {
+        departmentId
+        departmentName
+        prefix
+      }
     }
   }
 `;
