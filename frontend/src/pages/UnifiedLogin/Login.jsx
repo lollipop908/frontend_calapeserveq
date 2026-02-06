@@ -7,7 +7,7 @@ import logo from "/calapelogo.png";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import Swal from "sweetalert2";
-import { FaEye, FaEyeSlash } from "react-icons/fa"
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -50,46 +50,56 @@ const Login = () => {
 
       if (role.includes("queue") && role.includes("staff")) role = "queuestaff";
 
-      // Store role-specific data BEFORE clearing, so we can preserve data for other roles
-      // This allows multiple users to be "logged in" in different tabs/windows
-      const existingAdminData = role !== "admin" ? {
-        adminStaffId: localStorage.getItem("adminStaffId"),
-        adminStaffUsername: localStorage.getItem("adminStaffUsername"),
-        adminStaffInfo: localStorage.getItem("adminStaffInfo")
-      } : null;
-      
-      const existingQueueStaffData = role !== "queuestaff" ? {
-        queueStaffId: localStorage.getItem("queueStaffId"),
-        queueStaffUsername: localStorage.getItem("queueStaffUsername"),
-        queueStaffInfo: localStorage.getItem("queueStaffInfo")
-      } : null;
-      
-      const existingStaffData = role !== "staff" ? {
-        staffId: localStorage.getItem("staffId"),
-        staffUsername: localStorage.getItem("staffUsername"),
-        staffInfo: localStorage.getItem("staffInfo")
-      } : null;
+      const existingAdminData =
+        role !== "admin"
+          ? {
+              adminStaffId: localStorage.getItem("adminStaffId"),
+              adminStaffUsername: localStorage.getItem("adminStaffUsername"),
+              adminStaffInfo: localStorage.getItem("adminStaffInfo"),
+            }
+          : null;
+
+      const existingQueueStaffData =
+        role !== "queuestaff"
+          ? {
+              queueStaffId: localStorage.getItem("queueStaffId"),
+              queueStaffUsername: localStorage.getItem("queueStaffUsername"),
+              queueStaffInfo: localStorage.getItem("queueStaffInfo"),
+            }
+          : null;
+
+      const existingStaffData =
+        role !== "staff"
+          ? {
+              staffId: localStorage.getItem("staffId"),
+              staffUsername: localStorage.getItem("staffUsername"),
+              staffInfo: localStorage.getItem("staffInfo"),
+            }
+          : null;
 
       console.log("Preserving data for other roles:", {
         existingAdminData,
         existingQueueStaffData,
         existingStaffData,
-        currentRole: role
+        currentRole: role,
       });
 
-      // Clear session storage (session-specific)
       sessionStorage.clear();
-      
-      // Clear only non-role-specific localStorage items
-      // Keep role-specific keys so other dashboards can still access their data
+
       const roleSpecificKeys = [
-        "adminStaffId", "adminStaffUsername", "adminStaffInfo",
-        "queueStaffId", "queueStaffUsername", "queueStaffInfo",
-        "staffId", "staffUsername", "staffInfo"
+        "adminStaffId",
+        "adminStaffUsername",
+        "adminStaffInfo",
+        "queueStaffId",
+        "queueStaffUsername",
+        "queueStaffInfo",
+        "staffId",
+        "staffUsername",
+        "staffInfo",
       ];
-      
+
       const allKeys = Object.keys(localStorage);
-      allKeys.forEach(key => {
+      allKeys.forEach((key) => {
         if (!roleSpecificKeys.includes(key)) {
           localStorage.removeItem(key);
         }
@@ -97,7 +107,7 @@ const Login = () => {
 
       const staff = loginData.staff || {};
       const department = staff.department || {};
-      
+
       const staffInfo = {
         id: staff.staffId || Date.now(),
         username: staff.staffUsername || username,
@@ -107,7 +117,7 @@ const Login = () => {
         department: {
           id: parseInt(department.departmentId) || 0,
           name: department.departmentName?.trim() || "",
-          prefix: department.prefix?.trim() || ""
+          prefix: department.prefix?.trim() || "",
         },
         token: access_token,
         loginTime: new Date().toISOString(),
@@ -143,47 +153,67 @@ const Login = () => {
         localStorage.setItem("staffInfo", JSON.stringify(staffInfo));
       }
 
-      
       if (existingAdminData?.adminStaffId) {
         localStorage.setItem("adminStaffId", existingAdminData.adminStaffId);
         if (existingAdminData.adminStaffUsername) {
-          localStorage.setItem("adminStaffUsername", existingAdminData.adminStaffUsername);
+          localStorage.setItem(
+            "adminStaffUsername",
+            existingAdminData.adminStaffUsername,
+          );
         }
         if (existingAdminData.adminStaffInfo) {
-          localStorage.setItem("adminStaffInfo", existingAdminData.adminStaffInfo);
+          localStorage.setItem(
+            "adminStaffInfo",
+            existingAdminData.adminStaffInfo,
+          );
         }
         console.log("Restored admin data:", existingAdminData.adminStaffId);
       }
-      
+
       if (existingQueueStaffData?.queueStaffId) {
-        localStorage.setItem("queueStaffId", existingQueueStaffData.queueStaffId);
+        localStorage.setItem(
+          "queueStaffId",
+          existingQueueStaffData.queueStaffId,
+        );
         if (existingQueueStaffData.queueStaffUsername) {
-          localStorage.setItem("queueStaffUsername", existingQueueStaffData.queueStaffUsername);
+          localStorage.setItem(
+            "queueStaffUsername",
+            existingQueueStaffData.queueStaffUsername,
+          );
         }
         if (existingQueueStaffData.queueStaffInfo) {
-          localStorage.setItem("queueStaffInfo", existingQueueStaffData.queueStaffInfo);
+          localStorage.setItem(
+            "queueStaffInfo",
+            existingQueueStaffData.queueStaffInfo,
+          );
         }
-        console.log("Restored queuestaff data:", existingQueueStaffData.queueStaffId);
+        console.log(
+          "Restored queuestaff data:",
+          existingQueueStaffData.queueStaffId,
+        );
       }
-      
+
       if (existingStaffData?.staffId && role !== "staff") {
         localStorage.setItem("staffId", existingStaffData.staffId);
         if (existingStaffData.staffUsername) {
-          localStorage.setItem("staffUsername", existingStaffData.staffUsername);
+          localStorage.setItem(
+            "staffUsername",
+            existingStaffData.staffUsername,
+          );
         }
         if (existingStaffData.staffInfo) {
           localStorage.setItem("staffInfo", existingStaffData.staffInfo);
         }
         console.log("Restored staff data:", existingStaffData.staffId);
       }
-      
+
       console.log("Final localStorage state:", {
         queueStaffId: localStorage.getItem("queueStaffId"),
         queueStaffUsername: localStorage.getItem("queueStaffUsername"),
         staffId: localStorage.getItem("staffId"),
         staffUsername: localStorage.getItem("staffUsername"),
         adminStaffId: localStorage.getItem("adminStaffId"),
-        adminStaffUsername: localStorage.getItem("adminStaffUsername")
+        adminStaffUsername: localStorage.getItem("adminStaffUsername"),
       });
 
       Swal.fire({
@@ -223,6 +253,9 @@ const Login = () => {
   };
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
 
   return (
     <div className="login-page">
@@ -297,7 +330,16 @@ const Login = () => {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
-                  {showPassword ? <FaEyeSlash/> : <FaEye/>}
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <div className="forgot-password-container">
+                <button
+                  type="button"
+                  className="forgot-password-btn"
+                  onClick={handleForgotPassword}
+                >
+                  Forgot Password?
                 </button>
               </div>
             </div>

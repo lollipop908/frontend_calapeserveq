@@ -6,6 +6,8 @@ import {
   Navigate,
 } from "react-router-dom";
 import Login from "./pages/UnifiedLogin/Login";
+import ForgotPassword from "./pages/UnifiedLogin/Forgotpassword";
+import ResetPassword from "./pages/UnifiedLogin/ResetPassword";
 import StaffDashboard from "./pages/Staff/StaffDashboard";
 import PrivateStaffRoute from "./routes/PrivateStaffRoute";
 import Dashboard from "./pages/Admin/Dashboard";
@@ -23,14 +25,12 @@ function App() {
         <Route path="/home" element={<UtilsHome />} />
         <Route path="/queue" element={<ClientQueue />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/tv-monitor" element={<TVmonitor />} />
-       
+
         <Route element={<QueueStaffRoute />}>
-          <Route
-            path="/queuestaff/dashboard"
-            element={<QueueForm />}
-          />
-    
+          <Route path="/queuestaff/dashboard" element={<QueueForm />} />
         </Route>
         <Route path="/staff" element={<PrivateStaffRoute />}>
           <Route path="dashboard" element={<StaffDashboard />} />

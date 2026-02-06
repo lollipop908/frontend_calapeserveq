@@ -231,3 +231,18 @@ export const DELETE_COUNTER = gql`
     }
   }
 `;
+
+export const FORGOT_PASSWORD = gql`
+  mutation ForgotPassword($email: String!) {
+    forgotPassword(email: $email)
+  }
+`;
+
+export const RESET_PASSWORD_WITH_TOKEN = gql`
+  mutation ResetPasswordWithToken($token: String!, $newPassword: String!) {
+    resetPasswordWithToken(token: $token, newPassword: $newPassword) {
+      staffId
+      staffUsername
+    }
+  }
+`;
