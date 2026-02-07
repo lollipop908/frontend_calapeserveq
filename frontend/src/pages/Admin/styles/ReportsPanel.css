@@ -420,12 +420,12 @@
   .reports-panel {
     padding: 1.5rem;
   }
-  
+
   .reports-header {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .reports-filters {
     justify-content: flex-start;
   }
@@ -445,33 +445,33 @@
     padding: 1rem;
     border-radius: 12px;
   }
-  
+
   .title-icon-wrapper {
     width: 40px;
     height: 40px;
   }
-  
+
   .reports-icon {
     font-size: 1.25rem;
   }
-  
+
   .reports-title h2 {
     font-size: 1.25rem;
   }
-  
+
   .reports-filters {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .filter-group {
     justify-content: space-between;
   }
-  
+
   .chart-card {
     padding: 1.5rem;
   }
-  
+
   .metric-value {
     font-size: 1.75rem;
   }
@@ -502,11 +502,11 @@
     gap: 1rem;
     align-items: flex-start;
   }
-  
+
   .metric-card {
     padding: 1.25rem;
   }
-  
+
   .metric-icon-wrapper {
     width: 40px;
     height: 40px;

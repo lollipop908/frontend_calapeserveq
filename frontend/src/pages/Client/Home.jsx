@@ -79,7 +79,7 @@ const Home = () => {
         {/* Hero Section */}
         <div className="home-hero-section">
           <h1 className="home-hero-title">
-            <span className="home-gradient-text">CalapeServeQ</span>
+            <span className="home-gradient-text">Welcome to CalapeServeQ</span>
           </h1>
 
           <button className="home-btn-secondary">

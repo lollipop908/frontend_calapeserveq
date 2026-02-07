@@ -1,25 +1,192 @@
 .reports {
   background: #ffffff;
-  padding: 30px;
+  padding: 35px;
   margin: 30px auto;
   width: 100%;
-  max-width: 550px;
+  max-width: 650px;
   border-radius: 16px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 28px;
 }
 
 .title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: #1f2937;
-  font-style: italic;
-  font-family: "Courier New", Courier, monospace;
-  letter-spacing: 1px;
+  font-family: 'Arial', sans-serif;
+  letter-spacing: 1.5px;
+  text-align: center;
+  margin: 0;
+}
+
+/* Report Description */
+.report-description {
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border-left: 4px solid #4a90e2;
+}
+
+.report-description p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+  text-align: left;
+}
+
+/* Filters Section */
+.filters-section {
+  background: #f9fafb;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.filter-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.filter-label svg {
+  font-size: 18px;
+  color: #4a90e2;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  text-align: left;
+}
+
+.filter-select:hover {
+  border-color: #4a90e2;
+}
+
+.filter-select:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+/* Date Range Inputs */
+.date-range-inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.date-input-wrapper {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.input-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  text-align: left;
+}
+
+.date-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  text-align: left;
+}
+
+.date-input:hover {
+  border-color: #4a90e2;
+}
+
+.date-input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+/* Apply Filter Button */
+.apply-filter-btn {
+  width: 100%;
+  padding: 13px 24px;
+  border: none;
+  cursor: pointer;
+  background: #4a90e2;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(74, 144, 226, 0.35);
+  transition: all 0.2s ease-in-out;
+  margin-top: 8px;
+}
+
+.apply-filter-btn:hover {
+  background: #3a7bc8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(74, 144, 226, 0.45);
+}
+
+.apply-filter-btn:active {
+  transform: scale(0.97);
+}
+
+/* Download Section */
+.download-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .download-button {
@@ -36,38 +203,71 @@
   padding: 12px 24px;
   border: none;
   cursor: pointer;
-  background: #2563eb;
+  background: #4a90e2;
   color: #ffffff;
   font-size: 16px;
   font-weight: 600;
   border-radius: 10px;
-  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 3px 8px rgba(74, 144, 226, 0.35);
   transition: all 0.2s ease-in-out;
   min-width: 120px;
   justify-content: center;
+}
+
+.downloadbtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.downloadbtn:disabled:hover {
+  transform: none;
 }
 
 .downloadbtn svg {
   font-size: 20px;
 }
 
-.downloadbtn:hover {
-  background: #1d4ed8;
+.downloadbtn:hover:not(:disabled) {
+  background: #3a7bc8;
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.45);
+  box-shadow: 0 6px 14px rgba(74, 144, 226, 0.45);
 }
 
-.downloadbtn:active {
+.downloadbtn:active:not(:disabled) {
   transform: scale(0.97);
 }
 
+.no-data-message {
+  text-align: center;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .reports {
-    padding: 24px;
+    padding: 28px;
+    max-width: 100%;
+    margin: 20px;
   }
 
   .title {
-    font-size: 22px;
+    font-size: 24px;
+  }
+
+  .filters-section {
+    padding: 20px;
+  }
+
+  .date-range-inputs {
+    flex-direction: column;
+  }
+
+  .date-input-wrapper {
+    min-width: 100%;
   }
 
   .downloadbtn {
@@ -78,13 +278,41 @@
 
 @media (max-width: 500px) {
   .reports {
-    padding: 20px;
-    gap: 20px;
+    padding: 22px;
+    gap: 22px;
+    margin: 15px;
   }
 
   .title {
-    font-size: 20px;
-    letter-spacing: 0.5px;
+    font-size: 22px;
+    letter-spacing: 1px;
+  }
+
+  .report-description {
+    padding: 14px 16px;
+  }
+
+  .report-description p {
+    font-size: 13px;
+  }
+
+  .filters-section {
+    padding: 18px;
+    gap: 18px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .filter-label {
+    font-size: 14px;
+  }
+
+  .filter-select,
+  .date-input {
+    padding: 11px 14px;
+    font-size: 14px;
   }
 
   .download-button {
@@ -95,6 +323,11 @@
   .downloadbtn {
     width: 100%;
     padding: 12px 0;
+    font-size: 15px;
+  }
+
+  .apply-filter-btn {
+    padding: 12px 20px;
     font-size: 15px;
   }
 }

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
-import { FiDownload, FiFileText } from 'react-icons/fi';
+import { FiDownload, FiFileText, FiFilter, FiCalendar, FiGrid } from 'react-icons/fi';
 import { GET_ALL_QUEUES_DEPARTMENT, GET_QUEUES_BY_DEPARTMENT } from '../../graphql/query';
 import "./styles/Reports.css";
 
 const Reports = ({ departments }) => {
   const [timeRange, setTimeRange] = useState('day');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [chartData, setChartData] = useState([]);
 
   const { data: allQueuesData, loading: allLoading } = useQuery(GET_ALL_QUEUES_DEPARTMENT);
@@ -16,9 +18,28 @@ const Reports = ({ departments }) => {
   });
 
   const processQueueData = () => {
-    const queues = selectedDepartment === 'all' 
+    let queues = selectedDepartment === 'all'
       ? allQueuesData?.Queue || []
       : deptQueuesData?.QueueByDepartment || [];
+
+    // Apply date range filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      queues = queues.filter(queue => {
+        const queueDate = new Date(queue.createdAt);
+        queueDate.setHours(0, 0, 0, 0);
+        return queueDate >= fromDate;
+      });
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      queues = queues.filter(queue => {
+        const queueDate = new Date(queue.createdAt);
+        return queueDate <= toDate;
+      });
+    }
 
     if (timeRange === 'day') {
       const dailyCounts = {};
@@ -26,13 +47,13 @@ const Reports = ({ departments }) => {
         const date = new Date(queue.createdAt).toLocaleDateString();
         dailyCounts[date] = (dailyCounts[date] || 0) + 1;
       });
-      
+
       const sortedData = Object.entries(dailyCounts)
         .sort(([a], [b]) => new Date(a) - new Date(b))
         .slice(-7);
-      
-      setChartData(sortedData.map(([date, count]) => ({ 
-        label: date, 
+
+      setChartData(sortedData.map(([date, count]) => ({
+        label: date,
         value: count,
         name: date
       })));
@@ -40,16 +61,16 @@ const Reports = ({ departments }) => {
       const monthlyCounts = {};
       queues.forEach(queue => {
         const date = new Date(queue.createdAt);
-        const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         monthlyCounts[monthKey] = (monthlyCounts[monthKey] || 0) + 1;
       });
-      
+
       const sortedData = Object.entries(monthlyCounts)
         .sort(([a], [b]) => new Date(a) - new Date(b))
         .slice(-6);
-      
-      setChartData(sortedData.map(([month, count]) => ({ 
-        label: month, 
+
+      setChartData(sortedData.map(([month, count]) => ({
+        label: month,
         value: count,
         name: month
       })));
@@ -59,12 +80,12 @@ const Reports = ({ departments }) => {
         const year = new Date(queue.createdAt).getFullYear();
         yearlyCounts[year] = (yearlyCounts[year] || 0) + 1;
       });
-      
+
       const sortedData = Object.entries(yearlyCounts)
         .sort(([a], [b]) => a - b);
-      
-      setChartData(sortedData.map(([year, count]) => ({ 
-        label: year, 
+
+      setChartData(sortedData.map(([year, count]) => ({
+        label: year,
         value: count,
         name: year.toString()
       })));
@@ -75,34 +96,56 @@ const Reports = ({ departments }) => {
     if (allQueuesData || deptQueuesData) {
       processQueueData();
     }
-  }, [allQueuesData, deptQueuesData, timeRange, selectedDepartment]);
+  }, [allQueuesData, deptQueuesData, timeRange, selectedDepartment, dateFrom, dateTo]);
 
   const loading = allLoading || deptLoading;
   const totalQueues = chartData.reduce((sum, item) => sum + item.value, 0);
   const peakValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.value)) : 0;
   const avgValue = chartData.length > 0 ? Math.round(totalQueues / chartData.length) : 0;
 
+  const handleApplyFilter = () => {
+    processQueueData();
+  };
+
   const downloadCSV = () => {
+    const deptName = selectedDepartment === 'all'
+      ? 'All Departments'
+      : departments?.find(d => d.departmentId === parseInt(selectedDepartment))?.departmentName || 'Unknown';
+
     const headers = ['Period', 'Queue Count'];
     const rows = chartData.map(item => [item.label, item.value]);
+
+    const metadata = [
+      `Department: ${deptName}`,
+      `Time Range: ${timeRange}`,
+      dateFrom ? `Date From: ${dateFrom}` : '',
+      dateTo ? `Date To: ${dateTo}` : '',
+      `Total Queues: ${totalQueues}`,
+      '', // Empty line
+    ].filter(Boolean);
+
     const csvContent = [
+      ...metadata,
       headers.join(','),
       ...rows.map(row => row.join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `queue-report-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `queue-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   const downloadPDF = () => {
-    const deptName = selectedDepartment === 'all' 
-      ? 'All Departments' 
-      : departments.find(d => d.departmentId === parseInt(selectedDepartment))?.departmentName;
-    
+    const deptName = selectedDepartment === 'all'
+      ? 'All Departments'
+      : departments?.find(d => d.departmentId === parseInt(selectedDepartment))?.departmentName || 'Unknown';
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -110,13 +153,13 @@ const Reports = ({ departments }) => {
         <meta charset="UTF-8">
         <style>
           body { font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; }
-          h1 { color: #5B8ED6; font-size: 18pt; margin-bottom: 10px; }
-          h2 { color: #5B8ED6; font-size: 14pt; margin-top: 20px; margin-bottom: 10px; }
-          .header { border-bottom: 2px solid #5B8ED6; padding-bottom: 10px; margin-bottom: 20px; }
+          h1 { color: #4a90e2; font-size: 18pt; margin-bottom: 10px; }
+          h2 { color: #4a90e2; font-size: 14pt; margin-top: 20px; margin-bottom: 10px; }
+          .header { border-bottom: 2px solid #4a90e2; padding-bottom: 10px; margin-bottom: 20px; }
           .info { margin: 10px 0; }
           .label { font-weight: bold; color: #333; }
           table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-          th { background-color: #5B8ED6; color: white; padding: 10px; text-align: left; font-weight: bold; }
+          th { background-color: #4a90e2; color: white; padding: 10px; text-align: left; font-weight: bold; }
           td { padding: 8px; border-bottom: 1px solid #ddd; }
           tr:hover { background-color: #f5f5f5; }
           .footer { margin-top: 30px; font-size: 10pt; color: #666; border-top: 1px solid #ddd; padding-top: 10px; }
@@ -132,6 +175,8 @@ const Reports = ({ departments }) => {
           <p><span class="label">Generated:</span> ${new Date().toLocaleString()}</p>
           <p><span class="label">Time Range:</span> ${timeRange.charAt(0).toUpperCase() + timeRange.slice(1)}</p>
           <p><span class="label">Department:</span> ${deptName}</p>
+          ${dateFrom ? `<p><span class="label">Date From:</span> ${dateFrom}</p>` : ''}
+          ${dateTo ? `<p><span class="label">Date To:</span> ${dateTo}</p>` : ''}
         </div>
         
         <h2>Summary Statistics</h2>
@@ -180,27 +225,92 @@ const Reports = ({ departments }) => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Queue-Report-${timeRange}-${new Date().toISOString().split('T')[0]}.doc`;
+    a.download = `Queue-Report-${new Date().toISOString().split('T')[0]}.doc`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
 
   return (
-   <div className="reports">
-  <h1 className='title'>DOWNLOAD REPORTS</h1>
+    <div className="reports">
+      <h1 className="title">DOWNLOAD REPORTS</h1>
 
-  <div className="download-button">
-    <button className="downloadbtn" onClick={downloadCSV} title="Download CSV">
-      <FiDownload />
-      <span>CSV</span>
-    </button>
-    <button className="downloadbtn" onClick={downloadPDF} title="Download Report">
-      <FiFileText />
-      <span>Report</span>
-    </button>
-  </div>
-</div>
+      <div className="report-description">
+        <p>Download queueing system reports for analysis, auditing, and performance tracking. You may export data in CSV for Excel or Word for documentation.</p>
+      </div>
 
+      <div className="filters-section">
+        <h2 className="section-title">
+          <FiFilter /> Filter Options
+        </h2>
+
+        <div className="filter-group">
+          <label className="filter-label">
+            <FiCalendar /> Date Range
+          </label>
+          <div className="date-range-inputs">
+            <div className="date-input-wrapper">
+              <span className="input-label">From:</span>
+              <input
+                type="date"
+                className="date-input"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="date-input-wrapper">
+              <span className="input-label">To:</span>
+              <input
+                type="date"
+                className="date-input"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="filter-group">
+          <label className="filter-label">
+            <FiGrid /> Department
+          </label>
+          <select
+            className="filter-select"
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+          >
+            <option value="all">All Departments</option>
+            {departments?.map((dept) => (
+              <option key={dept.departmentId} value={dept.departmentId}>
+                {dept.departmentName}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button className="apply-filter-btn" onClick={handleApplyFilter}>
+          Apply Filter
+        </button>
+      </div>
+
+      <div className="download-section">
+        <h2 className="section-title">Export Data</h2>
+        <div className="download-button">
+          <button className="downloadbtn" onClick={downloadCSV} title="Download CSV" disabled={loading || totalQueues === 0}>
+            <FiDownload />
+            <span>CSV</span>
+          </button>
+          <button className="downloadbtn" onClick={downloadPDF} title="Download Report" disabled={loading || totalQueues === 0}>
+            <FiFileText />
+            <span>Report</span>
+          </button>
+        </div>
+        {totalQueues === 0 && !loading && (
+          <p className="no-data-message">No data available for the selected filters</p>
+        )}
+      </div>
+    </div>
   );
 };
 
