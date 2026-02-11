@@ -13,6 +13,7 @@ const GET_ADS = gql`
       filename
       filepath
       mimetype
+      isActive
     }
   }
 `;
@@ -54,7 +55,10 @@ const TVMonitor = () => {
     if (filepath.startsWith("http://") || filepath.startsWith("https://")) {
       return filepath;
     }
-    return `${BASE_URL}${filepath.startsWith("/") ? "" : "/"}${filepath}`;
+    // Encode the URL to handle spaces and special characters in filenames
+    return encodeURI(
+      `${BASE_URL}${filepath.startsWith("/") ? "" : "/"}${filepath}`,
+    );
   };
 
   // Initial department setup
@@ -181,8 +185,8 @@ const TVMonitor = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter ads based on selection
-  const visibleAds = ads.filter((ad) => allowedAdIds.includes(String(ad.id)));
+  // Filter ads based on selection (now using database field)
+  const visibleAds = ads.filter((ad) => ad.isActive);
 
   // Update effect to use visibleAds instead of ads
   useEffect(() => {

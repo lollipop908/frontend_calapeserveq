@@ -11,6 +11,7 @@ const GET_ADS = gql`
       filename
       filepath
       mimetype
+      isActive
       createdAt
     }
   }
@@ -43,6 +44,12 @@ const UPDATE_AD = gql`
 const DELETE_AD = gql`
   mutation DeleteAd($id: Int!) {
     deleteAd(id: $id)
+  }
+`;
+
+const TOGGLE_AD_STATUS = gql`
+  mutation ToggleAdStatus($id: Int!) {
+    toggleAdStatus(id: $id)
   }
 `;
 
@@ -119,7 +126,7 @@ const AdItem = ({
           Show on TV
           <input
             type="checkbox"
-            checked={selectedAds.includes(String(ad.id))}
+            checked={ad.isActive}
             onChange={() => toggleAdSelection(ad.id)}
           />
         </label>
@@ -159,6 +166,7 @@ const ManageAds = () => {
   const [uploadAd] = useMutation(UPLOAD_AD);
   const [updateAd] = useMutation(UPDATE_AD);
   const [deleteAd] = useMutation(DELETE_AD);
+  const [toggleAdStatus] = useMutation(TOGGLE_AD_STATUS);
 
   const BASE_URL = import.meta.env.VITE_GRAPHQL_URI
     ? import.meta.env.VITE_GRAPHQL_URI.replace("/graphql", "")
@@ -170,13 +178,13 @@ const ManageAds = () => {
     setSelectedFile(file);
   };
 
-  const toggleAdSelection = (adId) => {
-    const id = String(adId);
-    setSelectedAds((prev) =>
-      prev.includes(id)
-        ? prev.filter((prevId) => prevId !== id)
-        : [...prev, id],
-    );
+  const toggleAdSelection = async (adId) => {
+    try {
+      await toggleAdStatus({ variables: { id: adId } });
+      refetch();
+    } catch (err) {
+      Swal.fire("Error", "Failed to update ad status", "error");
+    }
   };
 
   // Persist to localStorage whenever state changes
@@ -395,7 +403,9 @@ const ManageAds = () => {
     if (filepath.startsWith("http://") || filepath.startsWith("https://")) {
       return filepath;
     }
-    return `${BASE_URL}${filepath.startsWith("/") ? "" : "/"}${filepath}`;
+    return encodeURI(
+      `${BASE_URL}${filepath.startsWith("/") ? "" : "/"}${filepath}`,
+    );
   };
 
   if (loading) return <p>Loading ads...</p>;
